@@ -70,8 +70,7 @@ export default function ReportsPage () {
                 <div className="flex-1">
                   <select
                     id="source"
-                    className="border p-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-gray-300"
-                  >
+                    className="border p-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-gray-300">
                     <option value="report-1">отчет яндекс-метрика.csv</option>
                     <option value="report-2">отчет о продажах.xls</option>
                   </select>

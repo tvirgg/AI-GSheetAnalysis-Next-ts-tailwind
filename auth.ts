@@ -23,21 +23,21 @@ export const authConfig = {
     },
   },
   providers: [
-    // Credentials({
-    //   async authorize (credentials) {
-    //     const salt = await bcrypt.genSalt(10)
-    //     const password = await bcrypt.hash('string', salt)
+    Credentials({
+      async authorize (credentials) {
+        const salt = await bcrypt.genSalt(10)
+        const password = await bcrypt.hash('string', salt)
 
-    //     console.log('password hash', password)
-    //     console.log('credentials', credentials)
+        console.log('password hash', password)
+        console.log('credentials', credentials)
 
-    //     return {
-    //       id: 1,
-    //       name: 'TestUser',
-    //       email: 'test@email.com'
-    //     }
-    //   },
-    // }),
+        return {
+          id: '1',
+          name: 'TestUser',
+          email: 'test@email.com'
+        }
+      },
+    }),
     GoogleProvider
   ],
 } satisfies NextAuthConfig;
