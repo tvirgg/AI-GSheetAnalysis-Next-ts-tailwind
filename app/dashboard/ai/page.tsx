@@ -53,7 +53,7 @@ export default function ReportsPage () {
                 <div className="p-10 border rounded-lg shadow">Какие мои товары имеют наибольшую маржу?</div>
                 <div className="p-10 border rounded-lg shadow">Кто из продавцов не выполнил план в последнем месяце?</div>
               </div>
-              <div className="py-100 my-4 my-4 mx-20  flex items-center space-x-4">
+              <div className="mt-24 mx-20  flex items-center space-x-4">
                 <input
                   type="text"
                   placeholder="Введите запрос"
@@ -63,7 +63,7 @@ export default function ReportsPage () {
                   Узнать
                 </button>
               </div>
-              <div className="my-4 mx-20 flex items-center space-x-2">
+              <div className="my-5 mx-20 flex items-center space-x-2">
                 <label htmlFor="source" className="text-sm font-semibold whitespace-nowrap">
                   Источник:
                 </label>
@@ -76,9 +76,6 @@ export default function ReportsPage () {
                   </select>
                 </div>
               </div>
-
-
-
             </div>
           </main>
         </div>
