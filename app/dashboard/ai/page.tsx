@@ -47,13 +47,13 @@ export default function ReportsPage () {
                   о состоянии бизнеса и наиболее важных показателях
                 </p>
               </div>
-              <div className="my-10 mx-auto w-1/2 grid grid-cols-2 gap-6">
-                <div className="p-10 border rounded-lg shadow">Какие показатели ухудшились в этом месяце?</div>
-                <div className="p-10 border rounded-lg shadow">Есть ли риск кассового разрыва?</div>
-                <div className="p-10 border rounded-lg shadow">Какие мои товары имеют наибольшую маржу?</div>
-                <div className="p-10 border rounded-lg shadow">Кто из продавцов не выполнил план в последнем месяце?</div>
+              <div className="mx-auto text-[14px] w-full xs:w-full sm:w-full py-[5px] xs:my-10 my-20 grid grid-cols-2 gap-6 sm:py-[65px] md:py-[45px] md:w-1/2 md:text-[14px] lg:py-[45px]">
+                <div className="p-6 border rounded-lg shadow md:p-10">Какие показатели ухудшились в этом месяце?</div>
+                <div className="p-6 border rounded-lg shadow md:p-10">Есть ли риск кассового разрыва?</div>
+                <div className="p-6 border rounded-lg shadow md:p-10">Какие мои товары имеют наибольшую маржу?</div>
+                <div className="p-6 border rounded-lg shadow md:p-10">Кто из продавцов не выполнил план в последнем месяце?</div>
               </div>
-              <div className="mt-24 mx-20  flex items-center space-x-4">
+              <div className="mt-24 xs:mx-0 md:mx-20 flex items-center space-x-4">
                 <input
                   type="text"
                   placeholder="Введите запрос"
@@ -63,14 +63,15 @@ export default function ReportsPage () {
                   Узнать
                 </button>
               </div>
-              <div className="my-5 mx-20 flex items-center space-x-2">
+              <div className="my-5 xs:mx-0 md:mx-20 flex items-center space-x-2">
                 <label htmlFor="source" className="text-sm font-semibold whitespace-nowrap">
                   Источник:
                 </label>
                 <div className="flex-1">
                   <select
                     id="source"
-                    className="border p-2 w-full rounded focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    className="border p-2 w-full ounded focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  >
                     <option value="report-1">отчет яндекс-метрика.csv</option>
                     <option value="report-2">отчет о продажах.xls</option>
                   </select>
