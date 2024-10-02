@@ -1,5 +1,3 @@
-# Translate the README content to Russian
-readme_content_ru = """
 # AI Dashboard Reports
 
 Это проект AI Dashboard Reports, который позволяет анализировать и визуализировать данные с помощью различных отчетов.
