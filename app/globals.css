@@ -11,7 +11,9 @@
 
   }
 }
-
+html{
+  scrollbar-gutter: stable;
+}
 body {
   background: #F9FAFB;
 }
