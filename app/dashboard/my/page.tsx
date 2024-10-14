@@ -1,36 +1,86 @@
 'use client'
 
-import { useState, Fragment } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import {
-  PlusIcon,
-} from '@heroicons/react/24/outline'
+import { PlusIcon, TrashIcon, CircleStackIcon } from '@heroicons/react/24/outline'
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
+import axios from 'axios'
+import { API_BASE_URL } from 'baseapi/config'
 
 // Функция для объединения классов
 function classNames(...classes: Array<string>) {
   return classes.filter(Boolean).join(' ')
 }
 
-// Интерфейс для вкладок (если используется)
-interface Tab {
-  name: string
-  href: string
-  current: boolean
+// Интерфейсы для типов данных
+interface Graph {
+  id: number
+  timestamp: string
+  prompt: string
+  graph_html: string // base64
+  is_up_to_date: boolean
 }
 
-// Данные для вкладок (если используются)
-const tabs: Array<Tab> = [
-  { name: 'Excel', href: '#', current: true },
-  { name: 'Google таблицы', href: '#', current: false },
-  { name: 'API (В разработке)', href: '#', current: false },
-]
+interface DashboardData {
+  display_name: string
+  data: Array<Record<string, any>>
+  columns: Array<string>
+  descriptions: Record<string, string>
+  graphs: Array<Graph>
+}
 
-// Данные для таблицы (если используются)
-const people = [
-  { name: 'Отчет о прибыли и убытках', title: 'Подключен к дашборду' },
-  { name: 'Проекты в работе', title: 'Подключен к дашборду' },
+// Предварительно закодированные тестовые данные
+const TEST_DASHBOARD_DATA: DashboardData[] = [
+  {
+    display_name: 'Отчет о компании Б',
+    data: [
+      { column1: 'Value 1', column2: 'Value 2' },
+      { column1: 'Value 3', column2: 'Value 4' },
+    ],
+    columns: ['column1', 'column2'],
+    descriptions: {
+      column1: 'Описание столбца 1',
+      column2: 'Описание столбца 2',
+    },
+    graphs: [
+      {
+        id: 1,
+        timestamp: '2024-04-01T12:00:00Z',
+        prompt: 'График выручки',
+        graph_html: 'PGRpdj4gSGFja2dyYXBoaWMgV3l1cmFja2kgPC9kaXY+', // <div>График Выручки</div>
+        is_up_to_date: true,
+      },
+      {
+        id: 2,
+        timestamp: '2024-04-02T12:00:00Z',
+        prompt: 'График прибыли',
+        graph_html: 'PGRpdj4gSGFja2dyYXBoaWMgUGlyaWJpPC9kaXY+', // <div>График Прибыли</div>
+        is_up_to_date: false,
+      },
+    ],
+  },
+  {
+    display_name: 'Проекты в работе',
+    data: [
+      { column1: 'Проект A', column2: 'Завершен' },
+      { column1: 'Проект B', column2: 'В процессе' },
+    ],
+    columns: ['column1', 'column2'],
+    descriptions: {
+      column1: 'Название проекта',
+      column2: 'Статус',
+    },
+    graphs: [
+      {
+        id: 3,
+        timestamp: '2024-04-03T12:00:00Z',
+        prompt: 'График статусов проектов',
+        graph_html: 'PGRpdj4gSGFja2dyYXBoaWMgU3RhdHVzPC9kaXY+', // <div>График Статусов Проектов</div>
+        is_up_to_date: true,
+      },
+    ],
+  },
 ]
 
 export default function MyDashboard() {
@@ -42,6 +92,39 @@ export default function MyDashboard() {
   const [startPeriod, setStartPeriod] = useState('')
   const [endPeriod, setEndPeriod] = useState('')
   const [source, setSource] = useState('')
+  const [dashboardData, setDashboardData] = useState<DashboardData[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [notification, setNotification] = useState<{ type: string; message: string } | null>(null)
+
+  // Получение данных дэшборда при монтировании компонента
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    setIsLoading(true)
+    try {
+      const response = await axios.get(`${API_BASE_URL}/all_dashboards`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      const data: DashboardData[] = response.data
+      if (data.length === 0) {
+        // Если данные пустые, используем тестовые данные
+        setDashboardData(TEST_DASHBOARD_DATA)
+      } else {
+        setDashboardData(data)
+      }
+    } catch (err: any) {
+      console.error(err)
+      // В случае ошибки используем тестовые данные и показываем уведомление
+      setDashboardData(TEST_DASHBOARD_DATA)
+      setNotification({ type: 'error', message: 'Ошибка при загрузке данных дэшборда.' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Обработчик открытия модального окна для добавления показателя
   const openAddMetricModal = (section: string) => {
@@ -60,19 +143,85 @@ export default function MyDashboard() {
   }
 
   // Обработчик добавления показателя
-  const handleAddMetric = () => {
+  const handleAddMetric = async () => {
     // Логика отправки данных на сервер или другая обработка
-    console.log('Добавлен показатель:', {
-      section: currentSection,
-      metricName,
-      startPeriod,
-      endPeriod,
-      source,
-    })
+    try {
+      const payload = {
+        section: currentSection,
+        metric_name: metricName,
+        start_period: startPeriod,
+        end_period: endPeriod,
+        source: source,
+      }
 
-    // После успешного добавления закрываем модальное окно
-    closeAddMetricModal()
+      const response = await axios.post(`${API_BASE_URL}/add_metric`, payload)
+
+      if (response.status === 200) {
+        setNotification({ type: 'success', message: 'Показатель успешно добавлен.' })
+        await fetchDashboardData()
+        closeAddMetricModal()
+      } else {
+        throw new Error('Не удалось добавить показатель.')
+      }
+    } catch (err: any) {
+      console.error(err)
+      setNotification({ type: 'error', message: err.response?.data?.message || 'Ошибка при добавлении показателя.' })
+    }
   }
+
+  // Обработчик удаления графика
+  const handleDeleteGraph = async (graphId: number, displayName: string) => {
+    const confirmed = confirm('Вы действительно хотите удалить этот график?')
+    if (!confirmed) return
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/delete_graph`, {
+        graph_id: graphId,
+        display_name: displayName,
+      })
+
+      if (response.status === 200 && response.data.status === 'success') {
+        setNotification({ type: 'success', message: response.data.message })
+        await fetchDashboardData()
+      } else {
+        throw new Error(response.data.message || 'Не удалось удалить график.')
+      }
+    } catch (err: any) {
+      console.error(err)
+      setNotification({ type: 'error', message: err.response?.data?.message || 'Что-то пошло не так.' })
+    }
+  }
+
+  // Обработчик обновления графика
+  const handleRefreshGraph = async (graphId: number, displayName: string) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/refresh_graph`, {
+        graph_id: graphId,
+        display_name: displayName,
+      })
+
+      if (response.status === 200 && response.data.status === 'success') {
+        setNotification({ type: 'success', message: response.data.message })
+        await fetchDashboardData()
+      } else {
+        throw new Error(response.data.message || 'Не удалось обновить график.')
+      }
+    } catch (err: any) {
+      console.error(err)
+      setNotification({ type: 'error', message: err.response?.data?.message || 'Что-то пошло не так.' })
+    }
+  }
+
+  // Автоматически скрывать уведомление через 5 секунд
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null)
+      }, 5000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [notification])
 
   return (
     <div>
@@ -86,151 +235,106 @@ export default function MyDashboard() {
         {/* Основной контент страницы */}
         <main className="py-10">
           <div className="px-4 sm:px-6 lg:px-8">
-            {/* Заголовок страницы */}
-            <div className="flex items-center flex-col">
-              <div>
-                <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                  Дашборд
-                </h2>
-                {/* Дополнительный текст (закомментирован) */}
-                {/* <div className="mt-2 text-gray-700">
-                  Мы поможем вам разобраться в Панельке и начать работу с ней всего за 3 шага
-                </div> */}
+            {/* Уведомления */}
+            {notification && (
+              <div className="mt-4">
+                <div
+                  className={`rounded-md p-4 ${
+                    notification.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+                  }`}
+                >
+                  <div className="flex">
+                    <div className="ml-3">
+                      <p
+                        className={`text-sm font-medium ${
+                          notification.type === 'success' ? 'text-green-800' : 'text-red-800'
+                        }`}
+                      >
+                        {notification.message}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
+            )}
 
-              {/* Форма поиска или другого взаимодействия */}
-              <div>
-                <form className="mt-10 max-w-md min-w-[500px]">
-                  <label htmlFor="q" className="block text-sm font-medium leading-6 text-gray-900">
-                    Что вы хотите узнать?
-                  </label>
-                  <div className="flex gap-x-4">
-                    <input
-                      name="q"
-                      type="text"
-                      required
-                      placeholder="Какие показатели ухудшились в этом месяце?"
-                      className="min-w-0 flex-auto rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                    />
+            {/* Обработка состояния загрузки */}
+            {isLoading && (
+              <div className="flex justify-center items-center h-64">
+                <p className="text-gray-500">Загрузка данных...</p>
+              </div>
+            )}
+
+            {/* Отображение данных дэшборда */}
+            {!isLoading && dashboardData.map((section) => (
+              <section key={section.display_name} className="mt-12">
+                <div className="mt-2 md:flex md:items-center md:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                      {section.display_name}
+                    </h2>
+                  </div>
+                  <div className="mt-4 flex flex-shrink-0 md:ml-4 md:mt-0">
                     <button
-                      type="submit"
-                      className="flex-none rounded-md bg-white px-3.5 py-2.5 text-sm text-gray-900 ring-1 ring-inset ring-gray-300 shadow-sm hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                      type="button"
+                      onClick={() => openAddMetricModal(section.display_name)}
+                      className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                     >
-                      Узнать
+                      <PlusIcon aria-hidden="true" className="h-5 w-5" />
                     </button>
                   </div>
-                </form>
-              </div>
-            </div>
-
-            {/* Кнопки периода */}
-            <div className="mt-20 flex gap-4 w-full justify-center">
-              <button
-                type="button"
-                className="w-[100px] rounded-full bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-              >
-                7 дней
-              </button>
-              <button
-                type="button"
-                className="w-[100px] rounded-full bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-              >
-                Месяц
-              </button>
-              <button
-                type="button"
-                className="w-[100px] rounded-full bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-              >
-                Год
-              </button>
-            </div>
-
-            {/* Секция Финансы */}
-            <section className="mt-12">
-              <div className="mt-2 md:flex md:items-center md:justify-between">
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                    Финансы
-                  </h2>
                 </div>
-                <div className="mt-4 flex flex-shrink-0 md:ml-4 md:mt-0">
-                  <button
-                    type="button"
-                    onClick={() => openAddMetricModal('Финансы')}
-                    className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                  >
-                    <PlusIcon aria-hidden="true" className=" h-5 w-5" />
-                  </button>
+
+                {/* Отображение графиков */}
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {section.graphs.length > 0 ? (
+                    section.graphs.map((graph) => (
+                      <div key={graph.id} className="relative bg-white p-4 rounded-lg shadow flex flex-col">
+                        {/* Кнопка удаления графика */}
+                        <button
+                          onClick={() => handleDeleteGraph(graph.id, section.display_name)}
+                          className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                          aria-label="Удалить график"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+
+                        {/* Кнопка обновления графика */}
+                        <button
+                          onClick={() => handleRefreshGraph(graph.id, section.display_name)}
+                          className="absolute top-2 left-2 text-indigo-500 hover:text-indigo-700"
+                          aria-label="Обновить график"
+                        >
+                          <CircleStackIcon className="h-5 w-5" />
+                        </button>
+
+                        {/* Отображение графика через iframe */}
+                        <div className="flex-1">
+                          <iframe
+                            srcDoc={atob(graph.graph_html)}
+                            style={{
+                              width: '100%',
+                              height: '500px', // Установленная фиксированная высота
+                              border: 'none',
+                              overflow: 'hidden',
+                            }}
+                            title={graph.prompt}
+                            sandbox="allow-scripts allow-same-origin"
+                          />
+                        </div>
+
+                        <p className="mt-2 text-sm text-gray-500">{graph.prompt}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center p-4 text-gray-500">
+                      Показатели отсутствуют. Нажмите на кнопку{' '}
+                      <PlusIcon aria-hidden="true" className="inline h-5 w-5" /> справа, чтобы добавить.
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-3 gap-4">
-                <picture>
-                  <img src="/temp/1-graph.png" className="max-w-[630px] w-full" alt="Финансы график 1" />
-                </picture>
-
-                <picture>
-                  <img src="/temp/1-graph.png" className="max-w-[630px] w-full" alt="Финансы график 2" />
-                </picture>
-
-                <picture>
-                  <img src="/temp/1-graph.png" className="max-w-[630px] w-full" alt="Финансы график 3" />
-                </picture>
-              </div>
-            </section>
-
-            {/* Секция Продажи */}
-            <section className="mt-12">
-              <div className="mt-2 md:flex md:items-center md:justify-between">
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                    Продажи
-                  </h2>
-                </div>
-                <div className="mt-4 flex flex-shrink-0 md:ml-4 md:mt-0">
-                  <button
-                    type="button"
-                    onClick={() => openAddMetricModal('Продажи')}
-                    className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                  >
-                    <PlusIcon aria-hidden="true" className=" h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-3 gap-4">
-                <picture>
-                  <img src="/temp/3-graph.png" className="max-w-[630px] w-full" alt="Продажи график" />
-                </picture>
-              </div>
-            </section>
-
-            {/* Секция Маркетинг */}
-            <section className="mt-12">
-              <div className="mt-2 md:flex md:items-center md:justify-between">
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                    Маркетинг
-                  </h2>
-                </div>
-                <div className="mt-4 flex flex-shrink-0 md:ml-4 md:mt-0">
-                  <button
-                    type="button"
-                    onClick={() => openAddMetricModal('Маркетинг')}
-                    className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                  >
-                    <PlusIcon aria-hidden="true" className=" h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-4 text-center">
-                <p className="p-4 text-gray-500">
-                  Показатели отсутствуют. Нажмите на кнопку{' '}
-                  <PlusIcon aria-hidden="true" className="inline h-5 w-5" /> с права чтобы добавить
-                </p>
-              </div>
-            </section>
+              </section>
+            ))}
 
             {/* Модальное окно для добавления показателя */}
             <Transition.Root show={isAddMetricOpen} as={Fragment}>
@@ -332,8 +436,11 @@ export default function MyDashboard() {
                               onChange={(e) => setSource(e.target.value)}
                             >
                               <option value="">Выберите источник</option>
-                              <option value="Отчет о прибыли и убытках">Отчет о прибыли и убытках</option>
-                              <option value="Проекты в работе">Проекты в работе</option>
+                              {dashboardData.map((section) => (
+                                <option key={section.display_name} value={section.display_name}>
+                                  {section.display_name}
+                                </option>
+                              ))}
                               {/* Добавьте другие источники по необходимости */}
                             </select>
                           </div>

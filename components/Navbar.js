@@ -11,7 +11,7 @@ import { ChevronDownIcon } from '@heroicons/react/20/solid'
 import { signOut } from 'next-auth/react'
 
 const userNavigation = [
-  { name: 'Настройки', href: '#' }
+  { name: 'Настройки', href: '/dashboard/profile_settings' }
 ]
 
 export default function Navbar ({ setSidebarOpen = f => f }) {
