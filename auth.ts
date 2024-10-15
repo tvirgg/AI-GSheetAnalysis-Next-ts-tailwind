@@ -1,47 +1,75 @@
 import NextAuth from 'next-auth';
-import type { NextAuthConfig } from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
-import GoogleProvider from 'next-auth/providers/google'
-import bcrypt from 'bcryptjs'
-import prisma from './app/lib/prisma';
+import CredentialsProvider from 'next-auth/providers/credentials';
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      email: string;
+    };
+  }
 
-export const authConfig = {
-  pages: {
-    signIn: '/signin'
-  },
-  callbacks: {
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user;
-      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
-      if (isOnDashboard) {
-        if (isLoggedIn) return true;
-        return false; // Redirect unauthenticated users to login page
-      } else if (isLoggedIn) {
-        return Response.redirect(new URL('/dashboard', nextUrl));
-      }
-      return true;
-    },
-  },
+  interface JWT {
+    id: string;
+    email: string;
+  }
+}
+export default NextAuth({
   providers: [
-    Credentials({
-      async authorize (credentials) {
-        const salt = await bcrypt.genSalt(10)
-        const password = await bcrypt.hash('string', salt)
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        try {
+          // Отправляем запрос на ваш бэкенд для проверки логина
+          const res = await fetch('https://your-backend-api.com/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: credentials?.email,
+              password: credentials?.password,
+            }),
+          });
 
-        console.log('password hash', password)
-        console.log('credentials', credentials)
+          const user = await res.json();
 
-        return {
-          id: '1',
-          name: 'TestUser',
-          email: 'test@email.com'
+          // Если данные пользователя получены, возвращаем объект пользователя
+          if (res.ok && user) {
+            return user;
+          }
+
+          // Если аутентификация не успешна, возвращаем null
+          return null;
+        } catch (error) {
+          console.error("Ошибка авторизации", error);
+          return null;
         }
       },
     }),
-    GoogleProvider
   ],
-} satisfies NextAuthConfig;
-
-export const { auth, signIn, signOut, handlers } = NextAuth({
-  ...authConfig
+  pages: {
+    signIn: '/signin',  // Страница для входа
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      session.user.id = token.id as string;
+      session.user.email = token.email as string;
+      return session;
+    }
+  },
+  secret: process.env.NEXTAUTH_SECRET,  // Секретный ключ для подписи токенов
+  session: {
+    strategy: 'jwt',
+  },
 });

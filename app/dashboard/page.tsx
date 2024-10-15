@@ -1,26 +1,25 @@
+// app/dashboard/page.tsx
 'use client'
 
-import { useState } from 'react'
-import WelcomeNavigation from '@/components/WelcomeNavigation'
-import Sidebar from '@/components/Sidebar'
-import Navbar from '@/components/Navbar'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
-export default function StartPage () {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+export default function DashboardPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      // Если токена нет, перенаправляем на страницу входа
+      router.push('/signin')
+    }
+    // Иначе продолжаем отображать страницу
+  }, [])
 
   return (
     <div>
-      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-
-      <div className="lg:pl-72">
-        <Navbar setSidebarOpen={setSidebarOpen} />
-
-        <main className="py-10">
-          <div className="px-4 sm:px-6 lg:px-8">
-            <WelcomeNavigation />
-          </div>
-        </main>
-      </div>
+      {/* Содержимое защищенной страницы */}
+      <h1>Добро пожаловать в дашборд!</h1>
     </div>
   )
 }
