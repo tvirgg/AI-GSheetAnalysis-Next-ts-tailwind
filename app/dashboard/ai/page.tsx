@@ -1,353 +1,196 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import Sidebar from '@/components/Sidebar'
-import Navbar from '@/components/Navbar'
-import { API_BASE_URL } from 'baseapi/config' // Убедитесь, что путь корректен
+import { useState, FormEvent } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation' // Для перенаправления
+import { API_BASE_URL } from 'baseapi/config' // Убедитесь, что путь правильный
 
-// Определение интерфейсов
-interface ChartResponse {
-  status: string
-  graph_html: string
-  timestamp: number
-  prompt: string
-}
+export default function SigninPage() {
+  const [message, setMessage] = useState<string>('') // Состояние для сообщений
+  const [isLoading, setIsLoading] = useState<boolean>(false) // Состояние для загрузки
+  const router = useRouter() // Для перенаправления
 
-interface TableItem {
-  display_name: string
-  last_updated: number
-  table_name: string
-  table_type: string
-}
+  const login = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setMessage('')
+    setIsLoading(true)
 
-export default function ReportsPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [prompt, setPrompt] = useState('')
-  const [tableName, setTableName] = useState<string>('')
-  const [loading, setLoading] = useState(false)
-  const [graphs, setGraphs] = useState<ChartResponse[]>([])
-  const [error, setError] = useState<string | null>(null)
+    console.log('Login function called')
 
-  // Состояния для таблиц
-  const [tables, setTables] = useState<TableItem[]>([])
-  const [tablesLoading, setTablesLoading] = useState<boolean>(false)
-  const [tablesError, setTablesError] = useState<string | null>(null)
+    // Используем FormData для получения данных формы
+    const formData = new FormData(event.currentTarget)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
 
-  // Ссылка для прокрутки к последнему графику
-  const lastGraphRef = useRef<HTMLDivElement>(null)
+    console.log('Email:', email)
+    console.log('Password:', password)
+    console.log('API_BASE_URL:', API_BASE_URL)
 
-  // Получение таблиц при загрузке компонента
-  useEffect(() => {
-    const fetchTables = async () => {
-      setTablesLoading(true)
-      setTablesError(null)
+    try {
+      // Запрос на аутентификацию
+      const loginResponse = await fetch(`${API_BASE_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      })
 
-      try {
-        const response = await fetch(`${API_BASE_URL}/tables`, {
+      console.log('Login Response Status:', loginResponse.status)
+
+      const loginResult = await loginResponse.json()
+      console.log('Login Response:', loginResult)
+
+      if (loginResponse.ok && loginResult.token) {
+        // Сохранение токена в localStorage
+        localStorage.setItem('token', loginResult.token)
+
+        // Запрос к /user для получения данных пользователя
+        const userResponse = await fetch(`${API_BASE_URL}/user`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-          },
+            'Authorization': `Bearer ${loginResult.token}` // Предполагая, что API использует Bearer Token
+          }
         })
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(
-            `Ошибка при получении таблиц: ${response.status} ${response.statusText}. ${errorText}`
-          )
+        console.log('User Response Status:', userResponse.status)
+
+        const userResult = await userResponse.json()
+        console.log('User Response:', userResult)
+
+        if (userResponse.ok && userResult.user_data) {
+          // Здесь вы можете сохранить данные пользователя в состоянии или контексте
+          console.log('User Data:', userResult.user_data)
+          setMessage('Вход выполнен успешно!')
+          // Перенаправление пользователя на защищённую страницу
+          router.push('/dashboard') // Замените '/dashboard' на нужный путь
+        } else {
+          setMessage(userResult.message || 'Не удалось получить данные пользователя.')
         }
-
-        const data: { tables: TableItem[] } = await response.json()
-        setTables(data.tables)
-      } catch (err: any) {
-        setTablesError(
-          err.message || 'Произошла ошибка при получении таблиц.'
-        )
-      } finally {
-        setTablesLoading(false)
-      }
-    }
-
-    fetchTables()
-  }, [])
-
-  // Прокрутка к последнему графику при добавлении нового графика
-  useEffect(() => {
-    if (lastGraphRef.current) {
-      lastGraphRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [graphs])
-
-  // Функция для обработки отправки запроса
-  const handleSubmit = async () => {
-    // Проверка, что запрос не пустой
-    if (!prompt.trim()) {
-      setError('Пожалуйста, введите запрос.')
-      return
-    }
-
-    // Проверка, что выбран источник
-    if (!tableName) {
-      setError('Пожалуйста, выберите источник данных.')
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/create_chart`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          table_name: tableName,
-          chart_prompt: prompt,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(
-          `Ошибка: ${response.status} ${response.statusText}. ${errorText}`
-        )
-      }
-
-      const data: ChartResponse = await response.json()
-
-      if (data.status === 'success') {
-        setGraphs((prevGraphs) => [...prevGraphs, data]) // Добавляем новый график в массив
-        setPrompt('') // Очищаем поле ввода
       } else {
-        throw new Error('Не удалось создать график.')
+        setMessage(loginResult.message || 'Ошибка при входе.')
       }
-    } catch (err: any) {
-      setError(err.message || 'Произошла ошибка.')
+    } catch (error) {
+      console.error('Ошибка входа:', error)
+      setMessage('Произошла ошибка. Пожалуйста, попробуйте позже.')
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
   return (
-    <>
-      <div className="flex h-screen bg-gray-100">
-        {/* Sidebar */}
-        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+    <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
+        <div className="bg-white px-6 py-12 shadow sm:rounded-lg sm:px-12">
+          <div>
+            <h2 className="text-2xl font-bold leading-9 tracking-tight text-gray-900">Вход в Панельку</h2>
+            <div>Полноценный доступ к работе с сервисом</div>
+          </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:pl-72">
-          <Navbar setSidebarOpen={setSidebarOpen} />
+          {/* Отображение сообщений */}
+          {message && (
+            <div id="message" className={`mt-4 text-center text-sm ${message === 'Вход выполнен успешно!' ? 'text-green-600' : 'text-red-600'}`}>
+              {message}
+            </div>
+          )}
 
-          <main className="flex-1 flex flex-col relative">
-            {/* Область ответов (графики) */}
-            <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 mb-24 bg-gray-50">
-              <div className="max-w-4xl mx-auto"> {/* Увеличенная максимальная ширина и центрирование */}
-                {graphs.length === 0 ? (
-                  <div className="flex flex-col h-full justify-center items-center space-y-6">
-                    {/* Header Section */}
-                    <div className="text-center">
-                      <h1 className="font-semibold text-2xl">Аишка</h1>
-                      <p className="mt-4">
-                        Задавайте вопросы, чтобы получить информацию
-                        <br />
-                        о состоянии бизнеса и наиболее важных показателях
-                      </p>
-                    </div>
-                    {/* Suggested Questions */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-                      <div
-                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
-                        onClick={() =>
-                          setPrompt(
-                            'Какие показатели ухудшились в этом месяце?'
-                          )
-                        }
-                      >
-                        Какие показатели ухудшились в этом месяце?
-                      </div>
-                      <div
-                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
-                        onClick={() =>
-                          setPrompt('Есть ли риск кассового разрыва?')
-                        }
-                      >
-                        Есть ли риск кассового разрыва?
-                      </div>
-                      <div
-                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
-                        onClick={() =>
-                          setPrompt(
-                            'Какие мои товары имеют наибольшую маржу?'
-                          )
-                        }
-                      >
-                        Какие мои товары имеют наибольшую маржу?
-                      </div>
-                      <div
-                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
-                        onClick={() =>
-                          setPrompt(
-                            'Кто из продавцов не выполнил план в последнем месяце?'
-                          )
-                        }
-                      >
-                        Кто из продавцов не выполнил план в последнем месяце?
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col space-y-6">
-                    {graphs.map((graph, index) => (
-                      <div
-                        key={index}
-                        ref={index === graphs.length - 1 ? lastGraphRef : null}
-                      >
-                        <div className="bg-gray-50 p-4 rounded-lg shadow"> {/* Единый серый фон */}
-                          <p className="text-sm text-gray-600 mb-2 ml-1">
-                            <strong>Запрос:</strong> {graph.prompt}
-                          </p>
-                          <iframe
-                            srcDoc={atob(graph.graph_html)}
-                            style={{
-                              width: '100%',
-                              height: '500px',
-                              border: 'none',
-                              overflow: 'hidden',
-                            }}
-                            title={`Graph-${index}`}
-                            sandbox="allow-scripts allow-same-origin"
-                          />
-                          <p className="text-xs text-gray-500 mt-2">
-                            Создано:{' '}
-                            {new Date(
-                              graph.timestamp * 1000
-                            ).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+          <form onSubmit={login} className="mt-6 space-y-6">
+            <div>
+              <div className="mt-2">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Ваш email"
+                  required
+                  autoComplete="email"
+                  className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                />
               </div>
             </div>
 
-            {/* Фиксированный блок ввода запроса и дисклэймер */}
-            <div className="fixed bottom-0 left-0 right-0 lg:left-72 z-50">
-              {/* Внешний контейнер фиксированного блока ввода с серым фоном */}
-              <div className="bg-gray-50">
-                {/* Внутренний контейнер с отступами и ограниченной шириной */}
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 border-t border-gray-200 shadow-custom bg-white">
-                  <div className="flex flex-col space-y-4">
-                    {/* Input Prompt */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full">
-                      <input
-                        type="text"
-                        placeholder="Введите запрос"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        className="flex-1 border p-2 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <button
-                        onClick={handleSubmit}
-                        className="bg-blue-500 text-white px-4 py-2 rounded-lg disabled:bg-blue-300"
-                        disabled={loading || tablesLoading}
-                      >
-                        {loading ? 'Загрузка...' : 'Узнать'}
-                      </button>
-                    </div>
-
-                    {/* Селект источника */}
-                    <div className="flex items-center space-x-2 w-full">
-                      <label htmlFor="source" className="font-semibold">
-                        Источник:
-                      </label>
-                      <div className="flex-1">
-                        {tablesLoading ? (
-                          <p>Загрузка источников...</p>
-                        ) : tablesError ? (
-                          <p className="text-red-500">{tablesError}</p>
-                        ) : tables.length === 0 ? (
-                          <p>Таблицы не найдены.</p>
-                        ) : (
-                          <select
-                            id="source"
-                            value={tableName}
-                            onChange={(e) => setTableName(e.target.value)}
-                            className="w-full border p-2 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="">Выберите источник</option>
-                            {tables.map((table) => (
-                              <option
-                                key={table.table_name}
-                                value={table.table_name}
-                              >
-                                {table.display_name}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Отображение ошибок */}
-                    {error && (
-                      <div className="p-4 bg-red-100 text-red-700 rounded-lg w-full">
-                        {error}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Disclaimer */}
-                </div>
-                <div className="text-center text-sm text-gray-500 p-3">
-                    Аишка может допускать ошибки. Рекомендуем проверять важную информацию.
-                  </div>
+            <div>
+              <div className="mt-2">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="Ваш пароль"
+                  required
+                  autoComplete="current-password"
+                  className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                />
               </div>
             </div>
-          </main>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                />
+                <label htmlFor="remember-me" className="ml-3 block text-sm leading-6 text-gray-900">
+                  Запомнить меня
+                </label>
+              </div>
+
+              <div className="text-sm leading-6">
+                <a href="#" className="font-semibold text-indigo-600 hover:text-indigo-500">
+                  Забыли пароль?
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
+                  isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {isLoading ? 'Вход...' : 'Войти'}
+              </button>
+            </div>
+          </form>
+
+          <div>
+            <div className="relative mt-10">
+              <div aria-hidden="true" className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-sm font-medium leading-6">
+                <span className="bg-white px-6 text-gray-900">Или войти через</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-4">
+              <button
+                type="button"
+                onClick={() => { /* Реализуйте логику Google авторизации */ }}
+                className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+                  {/* SVG содержимое */}
+                </svg>
+                <span className="text-sm font-semibold leading-6">Google</span>
+              </button>
+
+              {/* Аналогично для GitHub или других провайдеров */}
+            </div>
+          </div>
         </div>
+
+        <p className="mt-10 text-center text-sm text-gray-500">
+          Еще не зарегистрированы?{' '}
+          <Link href="/signup" className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">
+            Пройти регистрацию
+          </Link>
+        </p>
       </div>
-
-      {/* Стили для кастомного скроллбара и боковой тени */}
-      <style jsx>{`
-        /* Стилизация кастомного скроллбара для области ответов */
-        .overflow-y-auto::-webkit-scrollbar {
-          width: 8px;
-        }
-
-        .overflow-y-auto::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 4px;
-        }
-
-        .overflow-y-auto::-webkit-scrollbar-thumb {
-          background-color: #c1c1c1;
-          border-radius: 4px;
-        }
-
-        /* Для Firefox */
-        .overflow-y-auto {
-          scrollbar-width: thin;
-          scrollbar-color: #c1c1c1 #f1f1f1;
-        }
-
-        /* Кастомная тень для блока ввода */
-        .shadow-custom {
-          border-radius: 10px;
-        }
-
-        .loader {
-          border-top-color: #3498db;
-          animation: spin 1s infinite linear;
-        }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-      `}</style>
-    </>
+    </div>
   )
 }
