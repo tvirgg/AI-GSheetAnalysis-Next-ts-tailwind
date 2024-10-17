@@ -388,7 +388,7 @@ export default function ReportsPage() {
       {/* Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      <div className="lg:pl-72">
+      <div className="lg:pl-80">
         {/* Navbar */}
         <Navbar setSidebarOpen={setSidebarOpen} />
 
