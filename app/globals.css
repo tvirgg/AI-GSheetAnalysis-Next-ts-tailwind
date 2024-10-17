@@ -57,7 +57,7 @@ body::-webkit-scrollbar-track {
 }
 /* Горизонтальный скроллбар для элемента с классом .scrollable-container */
 .scrollable-container::-webkit-scrollbar {
-  height: 8px; /* Высота горизонтального скроллбара */
+  height: 18px; /* Высота горизонтального скроллбара */
 }
 
 .scrollable-container::-webkit-scrollbar-thumb {

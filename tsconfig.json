@@ -20,7 +20,7 @@
     "baseUrl": "./",
     "paths": {
       "@/*": ["./*"],
-      "@components/*": [".next/components/*"],
+      "@components/*": ["components/*"],
       "@app/*": ["app/*"],
       "baseapi/*": ["./app/api/*"]  // Добавляем алиас для baseapi
     }
