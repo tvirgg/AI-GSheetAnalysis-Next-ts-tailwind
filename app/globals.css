@@ -23,3 +23,49 @@ body {
     text-wrap: balance;
   } */
 }
+/* styles/globals.css */
+
+/* Импорт стилей Slick Carousel */
+@import 'slick-carousel/slick/slick.css';
+@import 'slick-carousel/slick/slick-theme.css';
+
+/* Стилизация точек пагинации */
+.my-slick-slider .slick-dots li button:before {
+  color: #4B5563; /* Цвет точек */
+}
+
+.my-slick-slider .slick-dots li.slick-active button:before {
+  color: #2563EB; /* Цвет активной точки */
+}
+
+/* Дополнительные стили для точек пагинации */
+.my-slick-slider .slick-dots li button:before {
+  font-size: 12px;
+}
+body::-webkit-scrollbar {
+  width: 8px; /* Ширина скроллбара */
+}
+
+body::-webkit-scrollbar-thumb {
+  border-radius: 100px; /* Закругленные углы */
+  background-color: #b0b0b0; /* Серый цвет ползунка */
+  border: 4px solid rgba(0, 0, 0, 0); /* Без внешнего бордюра */
+}
+
+body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1); /* Цвет фона дорожки скроллбара */
+}
+/* Горизонтальный скроллбар для элемента с классом .scrollable-container */
+.scrollable-container::-webkit-scrollbar {
+  height: 8px; /* Высота горизонтального скроллбара */
+}
+
+.scrollable-container::-webkit-scrollbar-thumb {
+  border-radius: 100px; /* Закругленные углы */
+  background-color: #b0b0b0; /* Серый цвет ползунка */
+  border: 4px solid rgba(0, 0, 0, 0); /* Без внешнего бордюра */
+}
+
+.scrollable-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1); /* Цвет фона дорожки скроллбара */
+}

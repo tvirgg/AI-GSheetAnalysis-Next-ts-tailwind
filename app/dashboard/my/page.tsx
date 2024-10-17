@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect, useContext } from 'react'
-import { PlusIcon, TrashIcon, CircleStackIcon } from '@heroicons/react/24/outline'
+import { PlusIcon } from '@heroicons/react/24/outline'
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
 import axios from 'axios'
@@ -10,6 +10,7 @@ import { API_BASE_URL } from 'baseapi/config'
 import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
 import { TableContext } from '@/app/context/TableContext'
+import GraphRow from '@/components/GraphRow' // Импортируем GraphRow
 
 // Функция для объединения классов
 function classNames(...classes: Array<string>) {
@@ -89,12 +90,16 @@ export default function MyDashboard() {
     if (!confirmed) return
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/delete_graph`, {
-        graph_id: graphId,
-        table_name: tableName,
-      }, {
-        headers: getAuthHeaders(),
-      })
+      const response = await axios.post(
+        `${API_BASE_URL}/delete_graph`,
+        {
+          graph_id: graphId,
+          table_name: tableName,
+        },
+        {
+          headers: getAuthHeaders(),
+        }
+      )
 
       if (response.status === 200 && response.data.status === 'success') {
         setNotification({ type: 'success', message: response.data.message })
@@ -104,18 +109,25 @@ export default function MyDashboard() {
       }
     } catch (err: any) {
       console.error(err)
-      setNotification({ type: 'error', message: err.response?.data?.message || 'Что-то пошло не так.' })
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.message || 'Что-то пошло не так.',
+      })
     }
   }
 
   const handleRefreshGraph = async (graphId: number, tableName: string) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/refresh_graph`, {
-        graph_id: graphId,
-        table_name: tableName,
-      }, {
-        headers: getAuthHeaders(),
-      })
+      const response = await axios.post(
+        `${API_BASE_URL}/refresh_graph`,
+        {
+          graph_id: graphId,
+          table_name: tableName,
+        },
+        {
+          headers: getAuthHeaders(),
+        }
+      )
 
       if (response.status === 200 && response.data.status === 'success') {
         setNotification({ type: 'success', message: response.data.message })
@@ -125,7 +137,10 @@ export default function MyDashboard() {
       }
     } catch (err: any) {
       console.error(err)
-      setNotification({ type: 'error', message: err.response?.data?.message || 'Что-то пошло не так.' })
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.message || 'Что-то пошло не так.',
+      })
     }
   }
 
@@ -142,14 +157,19 @@ export default function MyDashboard() {
   const { tableName, setTableName } = useContext(TableContext)
 
   return (
-    <div className="flex">
+    <div className="flex overflow-x-hidden">
+      {/* Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
+      {/* Основной контент */}
       <div className="flex-1 lg:pl-80">
+        {/* Navbar */}
         <Navbar setSidebarOpen={setSidebarOpen} />
 
+        {/* Основной контент страницы */}
         <main className="py-10">
           <div className="px-4 sm:px-6 lg:px-8">
+            {/* Уведомления */}
             {notification && (
               <div className="mt-4">
                 <div
@@ -172,12 +192,14 @@ export default function MyDashboard() {
               </div>
             )}
 
+            {/* Состояние загрузки */}
             {isLoading && (
               <div className="flex justify-center items-center h-64">
                 <p className="text-gray-500">Загрузка данных...</p>
               </div>
             )}
 
+            {/* Отображение данных дэшборда */}
             {!isLoading && dashboardData && dashboardData.length > 0 ? (
               dashboardData.map((section) => (
                 <section key={section.display_name} className="mt-12">
@@ -198,65 +220,21 @@ export default function MyDashboard() {
                     </div>
                   </div>
 
-                  <div className="mt-4">
-                    {section.graphs && section.graphs.length > 0 ? (
-                      <div className="flex space-x-4 overflow-x-auto">
-                        {section.graphs.map((graph) => (
-                          <div
-                            key={graph.id}
-                            className="relative bg-white p-4 rounded-lg shadow flex flex-col"
-                            style={{ height: '700px', width: '500px' }}
-                          >
-                            <button
-                              onClick={() => handleDeleteGraph(graph.id, section.table_name)}
-                              className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                              aria-label="Удалить график"
-                            >
-                              <TrashIcon className="h-5 w-5" />
-                            </button>
-
-                            <button
-                              onClick={() => handleRefreshGraph(graph.id, section.table_name)}
-                              className="absolute top-2 left-2 text-indigo-500 hover:text-indigo-700"
-                              aria-label="Обновить график"
-                            >
-                              <CircleStackIcon className="h-5 w-5" />
-                            </button>
-
-                            <iframe
-                              srcDoc={atob(graph.graph_html)}
-                              className="w-full h-full border-0 rounded-lg"
-                              title={graph.prompt}
-                              sandbox="allow-scripts allow-same-origin"
-                            />
-                            <p className="mt-2 text-sm text-gray-500">{graph.prompt}</p>
-                            <p className="mt-1 text-xs text-gray-400">
-                              Создано: {new Date(graph.timestamp * 1000).toLocaleString()}
-                            </p>
-                          </div>
-                        ))}
-
-                        <div
-                          className="flex-shrink-0 bg-white p-4 rounded-lg shadow flex items-center justify-center"
-                          style={{ height: '500px', width: '500px' }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleAddMetric(section.table_name)}
-                            className="flex flex-col items-center text-gray-500 hover:text-gray-700"
-                          >
-                            <PlusIcon aria-hidden="true" className="h-10 w-10" />
-                            <span className="mt-2">Добавить график</span>
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center p-4 text-gray-500">
-                        Показатели отсутствуют. Нажмите на кнопку{' '}
-                        <PlusIcon aria-hidden="true" className="inline h-5 w-5" /> справа, чтобы добавить.
-                      </div>
-                    )}
-                  </div>
+                  {/* Компонент GraphRow с горизонтальной прокруткой */}
+                  {section.graphs && section.graphs.length > 0 ? (
+                    <GraphRow
+                      graphs={section.graphs}
+                      tableName={section.table_name}
+                      handleDeleteGraph={handleDeleteGraph}
+                      handleRefreshGraph={handleRefreshGraph}
+                      handleAddMetric={handleAddMetric}
+                    />
+                  ) : (
+                    <div className="mt-4 text-center p-4 text-gray-500">
+                      Показатели отсутствуют. Нажмите на кнопку{' '}
+                      <PlusIcon aria-hidden="true" className="inline h-5 w-5" /> справа, чтобы добавить.
+                    </div>
+                  )}
                 </section>
               ))
             ) : (
@@ -272,6 +250,16 @@ export default function MyDashboard() {
 
       {/* Стили для кастомного скроллбара */}
       <style jsx>{`
+        /* Скрыть стандартные скроллбары */
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+
+        .scrollbar-hide {
+          -ms-overflow-style: none; /* IE and Edge */
+          scrollbar-width: none; /* Firefox */
+        }
+
         /* Стилизация кастомного скроллбара для горизонтальной прокрутки */
         .overflow-x-auto::-webkit-scrollbar {
           height: 8px;
