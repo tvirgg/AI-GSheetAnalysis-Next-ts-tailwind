@@ -1,6 +1,4 @@
 'use server'
-import { signIn } from "@/auth";
-
 async function sleep (ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -19,5 +17,9 @@ export async function authorization (formData: FormData) {
 }
 
 export async function googleAuthorization () {  
-  await signIn('google')
+  // await signIn('google')
+}
+
+function signIn(arg0: string, formData: FormData) {
+  throw new Error("Function not implemented.");
 }

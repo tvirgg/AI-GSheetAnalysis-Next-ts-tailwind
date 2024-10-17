@@ -16,6 +16,7 @@
     "@vercel/postgres": "^0.9.0",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
+    "classnames": "^2.5.1",
     "md5": "^2.3.0",
     "next": "14.2.5",
     "next-auth": "^5.0.0-beta.20",

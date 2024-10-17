@@ -20,9 +20,11 @@
     "baseUrl": "./",
     "paths": {
       "@/*": ["./*"],
+      "@components/*": [".next/components/*"],
+      "@app/*": ["app/*"],
       "baseapi/*": ["./app/api/*"]  // Добавляем алиас для baseapi
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/dashboard/ai"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/authenticated/dashboard/ai"],
   "exclude": ["node_modules"]
 }

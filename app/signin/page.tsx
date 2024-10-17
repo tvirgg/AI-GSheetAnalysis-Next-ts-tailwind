@@ -1,31 +1,25 @@
-// app/dashboard/ai/page.tsx
+// app/signin/page.tsx
 'use client'
 
 import { useState, FormEvent } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { API_BASE_URL } from '@/app/api/config' // Исправленный импорт
+import { useAuth } from '../context/AuthContext'
+import { API_BASE_URL } from 'baseapi/config' // Используем новый алиас
 
 export default function SigninPage() {
-  const [email, setEmail] = useState<string>('') // Состояние для email
-  const [password, setPassword] = useState<string>('') // Состояние для password
-  const [message, setMessage] = useState<string>('') // Состояние для сообщений
-  const [isLoading, setIsLoading] = useState<boolean>(false) // Состояние для загрузки
-  const router = useRouter() // Для перенаправления
+  const [email, setEmail] = useState<string>('')
+  const [password, setPassword] = useState<string>('')
+  const [message, setMessage] = useState<string>('') 
+  const { login } = useAuth() 
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
-  const login = async (event: FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setMessage('')
     setIsLoading(true)
 
     try {
-      // Логирование для отладки
-      console.log(`Отправка запроса на: ${API_BASE_URL}/login`)
-      console.log('Email:', email)
-      console.log('Password:', password)
-
-      // Запрос на аутентификацию
-      const loginResponse = await fetch(`${API_BASE_URL}/login`, {
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -33,19 +27,12 @@ export default function SigninPage() {
         body: JSON.stringify({ email, password })
       })
 
-      console.log('Login Response Status:', loginResponse.status)
+      const result = await response.json()
 
-      const loginResult = await loginResponse.json()
-      console.log('Login Response:', loginResult)
-
-      if (loginResponse.ok && loginResult.token) {
-        // Сохранение токена в localStorage
-        localStorage.setItem('token', loginResult.token)
-
-        // Перенаправление пользователя на защищённую страницу
-        router.push('/dashboard') // Замените '/dashboard' на нужный путь
+      if (response.ok && result.token) {
+        await login(result.token) // Вызов функции логина из AuthContext с передачей токена
       } else {
-        setMessage(loginResult.message || 'Ошибка при входе.')
+        setMessage(result.message || 'Ошибка при входе.')
       }
     } catch (error) {
       console.error('Ошибка входа:', error)
@@ -57,51 +44,49 @@ export default function SigninPage() {
 
   return (
     <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
+      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white px-6 py-12 shadow sm:rounded-lg sm:px-12">
           <div>
             <h2 className="text-2xl font-bold leading-9 tracking-tight text-gray-900">Вход в Панельку</h2>
-            <div>Полноценный доступ к работе с сервисом</div>
+            <p className="mt-2 text-sm text-gray-600">Полноценный доступ к работе с сервисом</p>
           </div>
 
           {/* Отображение сообщений */}
           {message && (
-            <div id="message" className={`mt-4 text-center text-sm ${message.includes('успешно') ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="mt-4 text-center text-sm text-red-600">
               {message}
             </div>
           )}
 
-          <form onSubmit={login} className="mt-6 space-y-6">
+          <form onSubmit={handleLogin} className="mt-8 space-y-6">
             <div>
-              <div className="mt-2">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Ваш email"
-                  required
-                  autoComplete="email"
-                  className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
+              <label htmlFor="email" className="sr-only">Email</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Ваш email"
+                required
+                autoComplete="email"
+                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 sm:text-sm"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
 
             <div>
-              <div className="mt-2">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="Ваш пароль"
-                  required
-                  autoComplete="current-password"
-                  className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+              <label htmlFor="password" className="sr-only">Пароль</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Ваш пароль"
+                required
+                autoComplete="current-password"
+                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 sm:text-sm"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
 
             <div className="flex items-center justify-between">
@@ -112,13 +97,13 @@ export default function SigninPage() {
                   type="checkbox"
                   className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
                 />
-                <label htmlFor="remember-me" className="ml-3 block text-sm leading-6 text-gray-900">
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                   Запомнить меня
                 </label>
               </div>
 
-              <div className="text-sm leading-6">
-                <a href="#" className="font-semibold text-indigo-600 hover:text-indigo-500">
+              <div className="text-sm">
+                <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
                   Забыли пароль?
                 </a>
               </div>
@@ -128,45 +113,32 @@ export default function SigninPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
-                  isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                className={`flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {isLoading ? 'Вход...' : 'Войти'}
               </button>
             </div>
           </form>
 
-          <div>
-            <div className="relative mt-10">
-              <div aria-hidden="true" className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
               </div>
-              <div className="relative flex justify-center text-sm font-medium leading-6">
-                <span className="bg-white px-6 text-gray-900">Или войти через</span>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-2 text-gray-500">Или войти через</span>
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-4">
-              <button
-                type="button"
-                onClick={() => { /* Реализуйте логику Google авторизации */ }}
-                className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:ring-transparent"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
-                  {/* SVG содержимое */}
-                </svg>
-                <span className="text-sm font-semibold leading-6">Google</span>
-              </button>
-
-              {/* Аналогично для GitHub или других провайдеров */}
+              {/* Реализуйте кнопки для социальных логинов, если необходимо */}
             </div>
           </div>
         </div>
 
         <p className="mt-10 text-center text-sm text-gray-500">
           Еще не зарегистрированы?{' '}
-          <Link href="/signup" className="font-semibold leading-6 text-indigo-600 hover:text-indigo-500">
+          <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
             Пройти регистрацию
           </Link>
         </p>
