@@ -1,4 +1,4 @@
-// app/components/Navbar.tsx
+// components/Navbar.tsx
 'use client'
 
 import { useAuth } from '../app/context/AuthContext'
@@ -12,12 +12,11 @@ const userNavigation = [{ name: 'Настройки', href: '/dashboard/profile_
 
 export default function Navbar({ setSidebarOpen = (open: boolean) => {} }) {
   const { logout, user } = useAuth()
-
-  const userName = user?.username || 'Пользователь' // Динамическое имя пользователя
+  const userName = user?.username || 'Пользователь' // Dynamic user name
 
   return (
     <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
-      {/* Кнопка для открытия бокового меню на мобильных устройствах */}
+      {/* Mobile menu button */}
       <button
         type="button"
         onClick={() => setSidebarOpen(true)}
@@ -27,25 +26,25 @@ export default function Navbar({ setSidebarOpen = (open: boolean) => {} }) {
         <Bars3Icon aria-hidden="true" className="h-6 w-6" />
       </button>
 
-      {/* Разделитель, видимый только на мобильных устройствах */}
+      {/* Separator */}
       <div aria-hidden="true" className="h-6 w-px bg-gray-900/10 lg:hidden" />
 
       <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        {/* Здесь можно добавить поиск или другие элементы */}
+        {/* Empty space */}
         <div className="flex-1" />
         <div className="flex items-center gap-x-4 lg:gap-x-6">
-          {/* Выпадающее меню профиля */}
+          {/* User dropdown */}
           <Menu as="div" className="relative">
             <div>
               <Menu.Button className="-m-1.5 flex items-center p-1.5">
                 <span className="sr-only">Открыть меню пользователя</span>
-                {/* Отображение имени пользователя */}
+                {/* Display user's name */}
                 <span className="flex items-center">
-                  {/* На мобильных устройствах отображаем инициалы или сокращённое имя */}
+                  {/* Mobile devices */}
                   <span className="block lg:hidden text-sm font-semibold text-gray-900">
                     {userName.charAt(0)}
                   </span>
-                  {/* На больших экранах отображаем полное имя */}
+                  {/* Larger screens */}
                   <span className="hidden lg:block ml-4 text-sm font-semibold text-gray-900">
                     {userName}
                   </span>
@@ -54,7 +53,7 @@ export default function Navbar({ setSidebarOpen = (open: boolean) => {} }) {
               </Menu.Button>
             </div>
 
-            {/* Меню, которое открывается при клике */}
+            {/* User menu items */}
             <Transition
               as={Fragment}
               enter="transition ease-out duration-100"

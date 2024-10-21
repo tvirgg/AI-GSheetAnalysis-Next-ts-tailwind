@@ -1,7 +1,7 @@
-// app/components/Sidebar.tsx
+// components/Sidebar.tsx
 'use client'
 
-import { useAuth } from '../app/context/AuthContext'
+import { useAuth } from '@/app/context/AuthContext'
 import { Dialog, Transition } from '@headlessui/react'
 import {
   AcademicCapIcon,
@@ -16,12 +16,12 @@ import {
 import Link from 'next/link'
 import { Fragment, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import classNames from 'classnames' // Убедитесь, что установлен пакет 'classnames'
+import classNames from 'classnames'
 
 const navigation = [
-  { name: 'Дашборд', href: '/dashboard/my', icon: HomeIcon, current: false },
-  { name: 'Отчеты', href: '/dashboard/reports', icon: ChartPieIcon, current: false },
-  { name: 'Аишка', href: '/dashboard/ai', icon: ViewfinderCircleIcon, current: false },
+  { name: 'Дашборд', href: '/dashboard/my', icon: HomeIcon },
+  { name: 'Отчеты', href: '/dashboard/reports', icon: ChartPieIcon },
+  { name: 'Аишка', href: '/dashboard/ai', icon: ViewfinderCircleIcon },
 ]
 
 export default function Sidebar({
@@ -31,8 +31,9 @@ export default function Sidebar({
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
 }) {
-  const { token, logout } = useAuth()
+  const { token, logout, user } = useAuth()
   const router = useRouter()
+  const userName = user?.username || 'Пользователь'
 
   useEffect(() => {
     if (!token) {
@@ -41,7 +42,7 @@ export default function Sidebar({
   }, [token, router])
 
   if (!token) {
-    return null // Или индикатор загрузки
+    return null
   }
 
   return (
@@ -49,6 +50,7 @@ export default function Sidebar({
       {/* Mobile Sidebar */}
       <Transition.Root show={sidebarOpen} as={Fragment}>
         <Dialog as="div" className="relative z-50 lg:hidden" onClose={setSidebarOpen}>
+          {/* Overlay */}
           <Transition.Child
             as={Fragment}
             enter="transition-opacity ease-linear duration-300"
@@ -61,6 +63,7 @@ export default function Sidebar({
             <div className="fixed inset-0 bg-gray-900/80" />
           </Transition.Child>
 
+          {/* Sidebar content */}
           <div className="fixed inset-0 flex">
             <Transition.Child
               as={Fragment}
@@ -71,8 +74,8 @@ export default function Sidebar({
               leaveFrom="translate-x-0"
               leaveTo="-translate-x-full"
             >
-              {/* Увеличиваем ширину боковой панели для мобильной версии */}
               <Dialog.Panel className="relative mr-16 flex w-full max-w-xs sm:max-w-sm flex-1 transform bg-gray-900 p-6 overflow-hidden">
+                {/* Close button */}
                 <Transition.Child
                   as={Fragment}
                   enter="ease-in-out duration-300"
@@ -97,7 +100,7 @@ export default function Sidebar({
                     <Squares2X2Icon aria-hidden="true" className="h-10 w-10" />
                     <div className="flex-1 ml-2">
                       <div className="font-bold text-sm">Company name</div>
-                      <div className="text-sm">Денис</div>
+                      <div className="text-sm">{userName}</div>
                     </div>
                   </div>
 
@@ -107,7 +110,7 @@ export default function Sidebar({
                         <ul role="list" className="-mx-2 space-y-1">
                           <li>
                             <Link
-                              href="/dashboard/my"
+                              href="/dashboard"
                               className={classNames(
                                 'bg-gray-200 text-gray-900',
                                 'group flex gap-x-3 rounded-md p-2 text-sm leading-6'
@@ -130,9 +133,7 @@ export default function Sidebar({
                               <Link
                                 href={item.href}
                                 className={classNames(
-                                  item.current
-                                    ? 'bg-gray-800 text-white'
-                                    : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                  'text-gray-400 hover:bg-gray-800 hover:text-white',
                                   'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
                                 )}
                               >
@@ -171,13 +172,13 @@ export default function Sidebar({
       </Transition.Root>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-80 lg:flex-col"> {/* Изменили lg:w-72 на lg:w-80 */}
+      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-80 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-4">
           <div className="flex text-gray-200 mt-6">
             <Squares2X2Icon aria-hidden="true" className="h-10 w-10" />
             <div className="flex-1 ml-2">
               <div className="font-bold text-sm">Company name</div>
-              <div className="text-sm">Денис</div>
+              <div className="text-sm">{userName}</div>
             </div>
           </div>
 
@@ -187,7 +188,7 @@ export default function Sidebar({
                 <ul role="list" className="-mx-2 space-y-1">
                   <li>
                     <Link
-                      href="/dashboard/my"
+                      href="/dashboard"
                       className={classNames(
                         'bg-gray-200 text-gray-900',
                         'group flex gap-x-3 rounded-md p-2 text-sm leading-6'
@@ -210,9 +211,7 @@ export default function Sidebar({
                       <Link
                         href={item.href}
                         className={classNames(
-                          item.current
-                            ? 'bg-gray-800 text-white'
-                            : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                          'text-gray-400 hover:bg-gray-800 hover:text-white',
                           'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
                         )}
                       >

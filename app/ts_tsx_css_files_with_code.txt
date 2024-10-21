@@ -24,14 +24,60 @@ body {
     text-wrap: balance;
   } */
 }
+/* styles/globals.css */
 
+/* Импорт стилей Slick Carousel */
+@import 'slick-carousel/slick/slick.css';
+@import 'slick-carousel/slick/slick-theme.css';
+
+/* Стилизация точек пагинации */
+.my-slick-slider .slick-dots li button:before {
+  color: #4B5563; /* Цвет точек */
+}
+
+.my-slick-slider .slick-dots li.slick-active button:before {
+  color: #2563EB; /* Цвет активной точки */
+}
+
+/* Дополнительные стили для точек пагинации */
+.my-slick-slider .slick-dots li button:before {
+  font-size: 12px;
+}
+body::-webkit-scrollbar {
+  width: 8px; /* Ширина скроллбара */
+}
+
+body::-webkit-scrollbar-thumb {
+  border-radius: 100px; /* Закругленные углы */
+  background-color: #b0b0b0; /* Серый цвет ползунка */
+  border: 4px solid rgba(0, 0, 0, 0); /* Без внешнего бордюра */
+}
+
+body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1); /* Цвет фона дорожки скроллбара */
+}
+/* Горизонтальный скроллбар для элемента с классом .scrollable-container */
+.scrollable-container::-webkit-scrollbar {
+  height: 18px; /* Высота горизонтального скроллбара */
+}
+
+.scrollable-container::-webkit-scrollbar-thumb {
+  border-radius: 100px; /* Закругленные углы */
+  background-color: #b0b0b0; /* Серый цвет ползунка */
+  border: 4px solid rgba(0, 0, 0, 0); /* Без внешнего бордюра */
+}
+
+.scrollable-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1); /* Цвет фона дорожки скроллбара */
+}
 
 File: layout.tsx
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from './context/AuthContext'
-
+import 'slick-carousel/slick/slick.css'
+import 'slick-carousel/slick/slick-theme.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
@@ -68,22 +114,832 @@ export default function HomePage () {
 
 
 File: config.ts
-export const API_BASE_URL = 'http://45.66.10.64:4555';
+export const API_BASE_URL = 'https://45.66.10.64:443';
 
-File: AuthContext.tsx
+// для локалки:
+// http://45.66.10.64:4555
+
+// для vercel:
+// https://45.66.10.64:443
+
+File: AuthenticatedWrapper.tsx
 // app/context/AuthContext.tsx
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { API_BASE_URL } from 'baseapi/config' // Используем новый алиас
+
+interface User {
+  name: string
+  email: string
+  // Добавьте другие поля по необходимости
+}
+
+interface AuthContextType {
+  token: string | null
+  user: User | null
+  login: (token: string, user: User) => void
+  logout: () => void
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [token, setToken] = useState<string | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem('token')
+    const storedUser = localStorage.getItem('user')
+    if (storedToken) {
+      setToken(storedToken)
+    }
+    if (storedUser) {
+      setUser(JSON.parse(storedUser))
+    }
+  }, [])
+
+  const loginUser = (newToken: string, userData: User) => {
+    localStorage.setItem('token', newToken)
+    localStorage.setItem('user', JSON.stringify(userData))
+    setToken(newToken)
+    setUser(userData)
+    router.push('/dashboard/my') // Перенаправление после успешного входа
+  }
+
+  const logoutUser = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setToken(null)
+    setUser(null)
+    router.push('/signin') // Перенаправление на страницу входа после выхода
+  }
+
+  return (
+    <AuthContext.Provider value={{ token, user, login: loginUser, logout: logoutUser }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export const useAuth = () => {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}
+
+
+File: ClientWrapper.tsx
+// app/components/ClientWrapper.tsx
+'use client'
+
+import { AuthProvider } from '../app/context/AuthContext'
+import ProtectedRoute from './ProtectedRoute'
+import Navbar from './Navbar'
+import Sidebar from './Sidebar'
+import { useState } from 'react'
+
+interface ClientWrapperProps {
+  children: React.ReactNode
+}
+
+export default function ClientWrapper({ children }: ClientWrapperProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  return (
+    <AuthProvider>
+      <ProtectedRoute>
+        <Navbar setSidebarOpen={setSidebarOpen} />
+        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+        <main className="lg:pl-72">{children}</main>
+      </ProtectedRoute>
+    </AuthProvider>
+  )
+}
+
+
+File: CustomArrows.tsx
+// components/CustomArrows.tsx
+'use client';
+
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+
+interface ArrowProps {
+  className?: string;
+  style?: React.CSSProperties;
+  onClick?: () => void;
+}
+
+export const PrevArrow: React.FC<ArrowProps> = ({ className, style, onClick }) => (
+  <button
+    className={`absolute left-2 top-1/2 transform -translate-y-1/2 z-10 bg-white bg-opacity-75 hover:bg-opacity-100 p-2 rounded-full shadow ${className}`}
+    style={{ ...style }}
+    onClick={onClick}
+    aria-label="Предыдущий"
+  >
+    <ChevronLeftIcon className="h-5 w-5 text-gray-700" />
+  </button>
+);
+
+export const NextArrow: React.FC<ArrowProps> = ({ className, style, onClick }) => (
+  <button
+    className={`absolute right-2 top-1/2 transform -translate-y-1/2 z-10 bg-white bg-opacity-75 hover:bg-opacity-100 p-2 rounded-full shadow ${className}`}
+    style={{ ...style }}
+    onClick={onClick}
+    aria-label="Следующий"
+  >
+    <ChevronRightIcon className="h-5 w-5 text-gray-700" />
+  </button>
+);
+
+
+File: GraphRow.tsx
+// components/GraphRow.tsx
+'use client';
+
+import {
+  TrashIcon,
+  CircleStackIcon,
+  ArrowDownTrayIcon,
+  WrenchScrewdriverIcon,
+  PlusIcon,
+} from '@heroicons/react/24/outline';
+import { Dialog, Transition } from '@headlessui/react';
+import { Fragment, useState } from 'react';
+import "../app/globals.css"; // Импорт стилей
+
+interface Graph {
+  id: number;
+  timestamp: number;
+  prompt: string;
+  graph_html: string; // base64
+  is_up_to_date: boolean;
+}
+
+interface GraphRowProps {
+  graphs: Graph[];
+  tableName: string;
+  handleDeleteGraph: (id: number, tableName: string) => void;
+  handleRefreshGraph: (id: number, tableName: string) => void;
+  handleAddMetric: (tableName: string) => void;
+}
+
+const GraphRow: React.FC<GraphRowProps> = ({
+  graphs,
+  tableName,
+  handleDeleteGraph,
+  handleRefreshGraph,
+  handleAddMetric,
+}) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState<string>('');
+
+  const handleDownload = (graph: Graph) => {
+    const blob = new Blob([atob(graph.graph_html)], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${graph.prompt}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExpand = (graph: Graph) => {
+    setModalContent(atob(graph.graph_html));
+    setIsModalOpen(true);
+  };
+
+  return (
+    <div className="relative mt-6 w-full">
+      {/* Горизонтальная прокрутка с применением стилей скроллбара */}
+      <div className="flex overflow-x-auto space-x-4 w-full scrollable-container">
+        {graphs.map((graph) => (
+          <div
+            key={graph.id}
+            className="flex-shrink-0 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg"
+          >
+            <div className="relative bg-white p-4 rounded-lg shadow h-[60vh] w-full overflow-hidden">
+              {/* Кнопка удаления графика */}
+              <button
+                onClick={() => handleDeleteGraph(graph.id, tableName)}
+                className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                aria-label="Удалить график"
+              >
+                <TrashIcon className="h-5 w-5" />
+              </button>
+
+              {/* Кнопка обновления графика */}
+              <button
+                onClick={() => handleRefreshGraph(graph.id, tableName)}
+                className="absolute top-2 left-2 text-indigo-500 hover:text-indigo-700"
+                aria-label="Обновить график"
+              >
+                <CircleStackIcon className="h-5 w-5" />
+              </button>
+
+              {/* Кнопка скачивания графика */}
+              <button
+                onClick={() => handleDownload(graph)}
+                className="absolute top-2 left-12 text-green-500 hover:text-green-700"
+                aria-label="Скачать график"
+              >
+                <ArrowDownTrayIcon className="h-5 w-5" />
+              </button>
+
+              {/* Кнопка развернуть график на весь экран */}
+              <button
+                onClick={() => handleExpand(graph)}
+                className="absolute top-2 left-24 text-blue-500 hover:text-blue-700"
+                aria-label="Развернуть график"
+              >
+                <WrenchScrewdriverIcon className="h-5 w-5" />
+              </button>
+
+              {/* Отображение графика через iframe */}
+              <iframe
+                srcDoc={atob(graph.graph_html)}
+                className="w-full h-full border-0 rounded-lg"
+                title={graph.prompt}
+                sandbox="allow-scripts allow-same-origin"
+              />
+
+              {/* Удалены элементы <p> с информацией о графике */}
+            </div>
+          </div>
+        ))}
+
+        {/* Кнопка добавления нового графика */}
+        <div className="flex-shrink-0 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
+          <div className="bg-white p-4 rounded-lg shadow flex items-center justify-center h-[60vh] w-full overflow-hidden">
+            <button
+              type="button"
+              onClick={() => handleAddMetric(tableName)}
+              className="flex flex-col items-center text-gray-500 hover:text-gray-700"
+            >
+              <PlusIcon aria-hidden="true" className="h-10 w-10" />
+              <span className="mt-2">Добавить график</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Модальное окно для развертывания графика */}
+      <Transition.Root show={isModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={setIsModalOpen}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-5xl sm:p-6">
+                  <div className="absolute top-0 right-0 hidden pr-4 pt-4 sm:block">
+                    <button
+                      type="button"
+                      className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
+                      onClick={() => setIsModalOpen(false)}
+                    >
+                      <span className="sr-only">Закрыть</span>
+                      <svg
+                        className="h-6 w-6"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="mt-5 sm:mt-6">
+                    <iframe
+                      srcDoc={modalContent}
+                      className="w-full h-[80vh] border-0 rounded-lg"
+                      title="Развернутый график"
+                      sandbox="allow-scripts allow-same-origin"
+                    />
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition.Root>
+    </div>
+  );
+};
+
+export default GraphRow;
+
+
+File: Navbar.tsx
+// app/components/Navbar.tsx
+'use client'
+
+import { useAuth } from '../app/context/AuthContext'
+import { Menu, Transition } from '@headlessui/react'
+import { Bars3Icon } from '@heroicons/react/24/outline'
+import { ChevronDownIcon } from '@heroicons/react/20/solid'
+import { Fragment } from 'react'
+import classNames from 'classnames'
+
+const userNavigation = [{ name: 'Настройки', href: '/dashboard/profile_settings' }]
+
+export default function Navbar({ setSidebarOpen = (open: boolean) => {} }) {
+  const { logout, user } = useAuth()
+
+  const userName = user?.username || 'Пользователь' // Динамическое имя пользователя
+
+  return (
+    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+      {/* Кнопка для открытия бокового меню на мобильных устройствах */}
+      <button
+        type="button"
+        onClick={() => setSidebarOpen(true)}
+        className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
+      >
+        <span className="sr-only">Открыть боковое меню</span>
+        <Bars3Icon aria-hidden="true" className="h-6 w-6" />
+      </button>
+
+      {/* Разделитель, видимый только на мобильных устройствах */}
+      <div aria-hidden="true" className="h-6 w-px bg-gray-900/10 lg:hidden" />
+
+      <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
+        {/* Здесь можно добавить поиск или другие элементы */}
+        <div className="flex-1" />
+        <div className="flex items-center gap-x-4 lg:gap-x-6">
+          {/* Выпадающее меню профиля */}
+          <Menu as="div" className="relative">
+            <div>
+              <Menu.Button className="-m-1.5 flex items-center p-1.5">
+                <span className="sr-only">Открыть меню пользователя</span>
+                {/* Отображение имени пользователя */}
+                <span className="flex items-center">
+                  {/* На мобильных устройствах отображаем инициалы или сокращённое имя */}
+                  <span className="block lg:hidden text-sm font-semibold text-gray-900">
+                    {userName.charAt(0)}
+                  </span>
+                  {/* На больших экранах отображаем полное имя */}
+                  <span className="hidden lg:block ml-4 text-sm font-semibold text-gray-900">
+                    {userName}
+                  </span>
+                  <ChevronDownIcon aria-hidden="true" className="ml-2 h-5 w-5 text-gray-400" />
+                </span>
+              </Menu.Button>
+            </div>
+
+            {/* Меню, которое открывается при клике */}
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className="absolute right-0 z-10 mt-2.5 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
+                {userNavigation.map((item) => (
+                  <Menu.Item key={item.name}>
+                    {({ active }) => (
+                      <a
+                        href={item.href}
+                        className={classNames(
+                          active ? 'bg-gray-100' : '',
+                          'block px-4 py-2 text-sm text-gray-700'
+                        )}
+                      >
+                        {item.name}
+                      </a>
+                    )}
+                  </Menu.Item>
+                ))}
+                <Menu.Item>
+                  {({ active }) => (
+                    <button
+                      type="button"
+                      onClick={() => logout()}
+                      className={classNames(
+                        active ? 'bg-gray-100' : '',
+                        'block w-full text-left px-4 py-2 text-sm text-gray-700'
+                      )}
+                    >
+                      Выйти
+                    </button>
+                  )}
+                </Menu.Item>
+              </Menu.Items>
+            </Transition>
+          </Menu>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+File: ProtectedRoute.tsx
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '../app/context/AuthContext'
+
+interface ProtectedRouteProps {
+  children: React.ReactNode
+}
+
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const { token } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!token) {
+      router.push('/signin')
+    }
+  }, [token, router])
+
+  if (!token) {
+    return null // Если нет токена, ничего не рендерим
+  }
+
+  return <>{children}</>
+}
+
+export default ProtectedRoute
+
+
+File: Sidebar.tsx
+// app/components/Sidebar.tsx
+'use client'
+
+import { useAuth } from '../app/context/AuthContext'
+import { Dialog, Transition } from '@headlessui/react'
+import {
+  AcademicCapIcon,
+  ArrowLeftOnRectangleIcon,
+  ChartPieIcon,
+  CreditCardIcon,
+  HomeIcon,
+  Squares2X2Icon,
+  XMarkIcon,
+  ViewfinderCircleIcon,
+} from '@heroicons/react/24/outline'
+import Link from 'next/link'
+import { Fragment, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import classNames from 'classnames' // Убедитесь, что установлен пакет 'classnames'
+
+const navigation = [
+  { name: 'Дашборд', href: '/dashboard/my', icon: HomeIcon, current: false },
+  { name: 'Отчеты', href: '/dashboard/reports', icon: ChartPieIcon, current: false },
+  { name: 'Аишка', href: '/dashboard/ai', icon: ViewfinderCircleIcon, current: false },
+]
+
+export default function Sidebar({
+  sidebarOpen,
+  setSidebarOpen,
+}: {
+  sidebarOpen: boolean
+  setSidebarOpen: (open: boolean) => void
+}) {
+  const { token, logout } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!token) {
+      router.push('/signin')
+    }
+  }, [token, router])
+
+  if (!token) {
+    return null // Или индикатор загрузки
+  }
+
+  return (
+    <>
+      {/* Mobile Sidebar */}
+      <Transition.Root show={sidebarOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50 lg:hidden" onClose={setSidebarOpen}>
+          <Transition.Child
+            as={Fragment}
+            enter="transition-opacity ease-linear duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="transition-opacity ease-linear duration-300"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-gray-900/80" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 flex">
+            <Transition.Child
+              as={Fragment}
+              enter="transition ease-in-out duration-300 transform"
+              enterFrom="-translate-x-full"
+              enterTo="translate-x-0"
+              leave="transition ease-in-out duration-300 transform"
+              leaveFrom="translate-x-0"
+              leaveTo="-translate-x-full"
+            >
+              {/* Увеличиваем ширину боковой панели для мобильной версии */}
+              <Dialog.Panel className="relative mr-16 flex w-full max-w-xs sm:max-w-sm flex-1 transform bg-gray-900 p-6 overflow-hidden">
+                <Transition.Child
+                  as={Fragment}
+                  enter="ease-in-out duration-300"
+                  enterFrom="opacity-0"
+                  enterTo="opacity-100"
+                  leave="ease-in-out duration-300"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSidebarOpen(false)}
+                    className="absolute top-5 right-5 text-gray-400 hover:text-white"
+                  >
+                    <span className="sr-only">Close sidebar</span>
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                  </button>
+                </Transition.Child>
+
+                <div className="flex grow flex-col gap-y-5 overflow-y-auto">
+                  <div className="flex text-gray-200 mt-6">
+                    <Squares2X2Icon aria-hidden="true" className="h-10 w-10" />
+                    <div className="flex-1 ml-2">
+                      <div className="font-bold text-sm">Company name</div>
+                      <div className="text-sm">Денис</div>
+                    </div>
+                  </div>
+
+                  <nav className="flex flex-1 flex-col">
+                    <ul role="list" className="flex flex-1 flex-col gap-y-7">
+                      <li>
+                        <ul role="list" className="-mx-2 space-y-1">
+                          <li>
+                            <Link
+                              href="/dashboard"
+                              className={classNames(
+                                'bg-gray-200 text-gray-900',
+                                'group flex gap-x-3 rounded-md p-2 text-sm leading-6'
+                              )}
+                            >
+                              <AcademicCapIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                              <div>
+                                <div className="font-semibold">Как начать работу?</div>
+                                <div className="underline italic text-xs">за 3 шага &rarr;</div>
+                              </div>
+                            </Link>
+                          </li>
+                        </ul>
+                      </li>
+
+                      <li>
+                        <ul role="list" className="-mx-2 space-y-1">
+                          {navigation.map((item) => (
+                            <li key={item.name}>
+                              <Link
+                                href={item.href}
+                                className={classNames(
+                                  item.current
+                                    ? 'bg-gray-800 text-white'
+                                    : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                                  'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
+                                )}
+                              >
+                                <item.icon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                                {item.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+
+                      <li className="mt-auto">
+                        <a
+                          href="#"
+                          className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                        >
+                          <CreditCardIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                          Оформить подписку
+                        </a>
+                        <button
+                          type="button"
+                          className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                          onClick={() => logout()}
+                        >
+                          <ArrowLeftOnRectangleIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                          Выйти
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition.Root>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-80 lg:flex-col"> {/* Изменили lg:w-72 на lg:w-80 */}
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-4">
+          <div className="flex text-gray-200 mt-6">
+            <Squares2X2Icon aria-hidden="true" className="h-10 w-10" />
+            <div className="flex-1 ml-2">
+              <div className="font-bold text-sm">Company name</div>
+              <div className="text-sm">Денис</div>
+            </div>
+          </div>
+
+          <nav className="mt-6 flex flex-1 flex-col">
+            <ul role="list" className="flex flex-1 flex-col gap-y-7">
+              <li>
+                <ul role="list" className="-mx-2 space-y-1">
+                  <li>
+                    <Link
+                      href="/dashboard"
+                      className={classNames(
+                        'bg-gray-200 text-gray-900',
+                        'group flex gap-x-3 rounded-md p-2 text-sm leading-6'
+                      )}
+                    >
+                      <AcademicCapIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                      <div>
+                        <div className="font-semibold">Как начать работу?</div>
+                        <div className="underline italic text-xs">за 3 шага &rarr;</div>
+                      </div>
+                    </Link>
+                  </li>
+                </ul>
+              </li>
+
+              <li>
+                <ul role="list" className="-mx-2 space-y-1">
+                  {navigation.map((item) => (
+                    <li key={item.name}>
+                      <Link
+                        href={item.href}
+                        className={classNames(
+                          item.current
+                            ? 'bg-gray-800 text-white'
+                            : 'text-gray-400 hover:bg-gray-800 hover:text-white',
+                          'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
+                        )}
+                      >
+                        <item.icon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                        {item.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+
+              <li className="mt-auto">
+                <a
+                  href="#"
+                  className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                >
+                  <CreditCardIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                  Оформить подписку
+                </a>
+                <button
+                  type="button"
+                  className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                  onClick={() => logout()}
+                >
+                  <ArrowLeftOnRectangleIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                  Выйти
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </>
+  )
+}
+
+
+File: WelcomeNavigation.tsx
+import { ChevronRightIcon } from '@heroicons/react/20/solid'
+import { CursorArrowRaysIcon, PlayCircleIcon, PlusCircleIcon, PresentationChartBarIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
+
+const navigation = [
+  {
+    id: 1,
+    title: 'Подключите отчеты, которые вы ведете (например, управленческие отчеты, о продажах и тд)',
+    subtitle: 'Чтобы отобразить все ключевые показатели на одной странице',
+    icon: PlusCircleIcon,
+    href: 'dashboard/reports'
+  },
+  {
+    id: 2,
+    title: 'Выберите показатели, которые вы хотите отобразить',
+    subtitle: 'Так мы поймем, что показывать вам на дашборде',
+    icon: CursorArrowRaysIcon,
+    href: 'dashboard/ai'
+  },
+  {
+    id: 3,
+    title: 'Откройте дашборд и наблюдайте за показателями',
+    subtitle: 'Чтобы видеть актуальную ситуацию по каждой области бизнеса',
+    icon: PresentationChartBarIcon,
+    href: 'dashboard/my'
+  },
+]
+
+export default function WelcomeNavigation () {
+  return (
+    <div className="m-7">
+      <div>
+        <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+          Добро пожаловать, Денис!
+        </h2>
+        <div className="mt-2 text-gray-700">
+          Мы поможем вам разобраться в Панельке и начать работу с ней всего за 3 шага
+        </div>
+      </div>
+
+      <ul
+        role="list"
+        className="mt-8 divide-y divide-gray-100 overflow-hidden bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl"
+      >
+        {navigation.map((item) => (
+          <li key={item.id} className="relative flex justify-between gap-x-6 px-4 py-5 hover:bg-gray-50 sm:px-6">
+            <div className="flex min-w-0 gap-x-4">
+              <item.icon aria-hidden="true" className="h-12 w-12 text-gray-500" />
+              <div className="min-w-0 flex-auto">
+                <p className="text-sm font-semibold leading-6 text-gray-900">
+                  <a href={item.href}>
+                    <span className="absolute inset-x-0 -top-px bottom-0" />
+                    {item.title}
+                  </a>
+                </p>
+                <p className="mt-1 flex text-xs leading-5 text-gray-500">
+                  {item.subtitle}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-x-4">
+              <ChevronRightIcon aria-hidden="true" className="h-5 w-5 flex-none text-gray-400" />
+            </div>
+          </li>
+        ))}
+        <li className="relative flex justify-between px-4 py-4 hover:bg-gray-50 sm:px-6 divide-gray-900/5 bg-gray-50">
+          <a
+            href=""
+            className="flex items-center justify-center gap-x-2.5 py-3 text-sm font-semibold leading-6 text-blue-500"
+          >
+            <PlayCircleIcon aria-hidden="true" className="h-5 w-5 flex-none text-blue-500" />
+            Посмотреть видео-инструкцию по началу работы &rarr;
+          </a>
+        </li>
+      </ul>
+    </div>
+  )
+}
+
+File: AuthContext.tsx
+'use client'
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import { API_BASE_URL } from 'baseapi/config'
 
 interface User {
   id: number
   email: string
   username: string
-  auth_type: string
-  // Добавьте другие поля по необходимости
 }
 
 interface AuthContextType {
@@ -115,79 +971,100 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchUserData = async (token: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/user`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
       })
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data')
-      }
+      if (!response.ok) throw new Error('Failed to fetch user data')
       const data = await response.json()
       setUser(data.user_data)
+  
+      // Сохранение пользователя в localStorage
       localStorage.setItem('user', JSON.stringify(data.user_data))
     } catch (error) {
-      console.error('Ошибка при получении данных пользователя:', error)
       logoutUser()
     } finally {
       setLoading(false)
     }
   }
-
   const loginUser = async (newToken: string) => {
     localStorage.setItem('token', newToken)
     setToken(newToken)
-    setLoading(true)
     await fetchUserData(newToken)
-    router.push('/dashboard/my') // Перенаправление после успешного входа
+    router.push('/dashboard')
   }
 
   const logoutUser = () => {
     localStorage.clear()
     setToken(null)
     setUser(null)
-    router.push('/signin') // Перенаправление на страницу входа после выхода
+    router.push('/signin')
   }
 
   return (
     <AuthContext.Provider value={{ token, user, loading, login: loginUser, logout: logoutUser }}>
-      {loading ? (
-        // Прелоадер во время загрузки данных
-        <div className="flex items-center justify-center h-screen">
-          <div className="loader"></div>
-        </div>
-      ) : (
-        children
-      )}
+      {!loading && children}
     </AuthContext.Provider>
   )
 }
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
+  if (context === undefined) throw new Error('useAuth must be used within an AuthProvider')
   return context
 }
 
+File: TableContext.tsx
+// app/context/TableContext.tsx
+import React, { createContext, useState, ReactNode } from 'react';
 
-File: page.tsx
-// app/dashboard/page.tsx
-'use client'
-
-import ProtectedRoute from '../../components/ProtectedRoute' // Adjust the import path
-
-export default function Dashboard() {
-  return (
-    <ProtectedRoute>
-      <div>
-        <h1>Добро пожаловать в дашборд!</h1>
-        {/* Ваш контент */}
-      </div>
-    </ProtectedRoute>
-  )
+interface TableContextProps {
+  tableName: string;
+  setTableName: (name: string) => void;
 }
 
+export const TableContext = createContext<TableContextProps>({
+  tableName: '',
+  setTableName: () => {},
+});
+
+export const TableProvider = ({ children }: { children: ReactNode }) => {
+  const [tableName, setTableName] = useState<string>('');
+
+  return (
+    <TableContext.Provider value={{ tableName, setTableName }}>
+      {children}
+    </TableContext.Provider>
+  );
+};
+
+
+File: page.tsx
+
+'use client'
+
+import { useState } from 'react'
+import WelcomeNavigation from '@/components/WelcomeNavigation'
+import Sidebar from '@/components/Sidebar'
+import Navbar from '@/components/Navbar'
+import ProtectedRoute from '../../components/ProtectedRoute' // Adjust the import path
+export default function StartPage () {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  return (
+    <ProtectedRoute>
+      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+
+      <div className="lg:pl-72">
+        <Navbar setSidebarOpen={setSidebarOpen} />
+
+        <main className="py-10">
+          <div className="px-4 sm:px-6 lg:px-8">
+            <WelcomeNavigation />
+          </div>
+        </main>
+      </div>
+      </ProtectedRoute>
+  )
+}
 
 File: page.tsx
 'use client'
@@ -195,7 +1072,9 @@ File: page.tsx
 import { useState, useEffect, useRef } from 'react'
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
-import { API_BASE_URL } from 'baseapi/config' // Убедитесь, что путь корректен
+import { API_BASE_URL } from 'baseapi/config'
+import { useAuth } from '@/app/context/AuthContext'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 // Определение интерфейсов
 interface ChartResponse {
@@ -212,10 +1091,10 @@ interface TableItem {
   table_type: string
 }
 
-export default function ReportsPage() {
+export default function AiPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [prompt, setPrompt] = useState('')
-  const [tableName, setTableName] = useState<string>('')
+  const [tableName, setTableName] = useState<string>('') // Стейт для хранения выбранной таблицы
   const [loading, setLoading] = useState(false)
   const [graphs, setGraphs] = useState<ChartResponse[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -227,6 +1106,32 @@ export default function ReportsPage() {
 
   // Ссылка для прокрутки к последнему графику
   const lastGraphRef = useRef<HTMLDivElement>(null)
+  
+  const { token: contextToken } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams() // Получаем параметры запроса
+
+  // Функция для получения токена из localStorage
+  const getTokenFromLocalStorage = (): string | null => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('token')
+    }
+    return null
+  }
+
+  // Используем токен из контекста или из localStorage
+  const token = contextToken || getTokenFromLocalStorage()
+
+  console.log('Текущий токен:', token) // Для отладки
+
+  useEffect(() => {
+    if (!token) {
+      router.replace('/signin') // Перенаправляем на страницу входа
+    }
+  }, [token, router])
+
+  // Получаем значение table_name из параметров запроса
+  const tableNameParam = searchParams.get('table_name')
 
   // Получение таблиц при загрузке компонента
   useEffect(() => {
@@ -235,13 +1140,11 @@ export default function ReportsPage() {
       setTablesError(null)
 
       try {
-        const token = localStorage.getItem('token') // Получаем токен из localStorage
-
         const response = await fetch(`${API_BASE_URL}/tables`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`, // Добавляем токен в заголовок
+            'Authorization': `Bearer ${token}`, // Токен добавляется здесь
           },
         })
 
@@ -254,17 +1157,29 @@ export default function ReportsPage() {
 
         const data: { tables: TableItem[] } = await response.json()
         setTables(data.tables)
+
+        // Если есть параметр table_name, устанавливаем его после загрузки таблиц
+        if (tableNameParam) {
+          const foundTable = data.tables.find((table) => table.table_name === tableNameParam)
+
+          if (!foundTable) {
+            console.log(`Указанный источник данных не найден: ${tableNameParam}`)
+            setError('Указанный источник данных не найден.')
+          } else {
+            setTableName(foundTable.table_name)
+          }
+        }
       } catch (err: any) {
-        setTablesError(
-          err.message || 'Произошла ошибка при получении таблиц.'
-        )
+        setTablesError(err.message || 'Произошла ошибка при получении таблиц.')
       } finally {
         setTablesLoading(false)
       }
     }
 
-    fetchTables()
-  }, [])
+    if (token) {
+      fetchTables()
+    }
+  }, [token, tableNameParam])
 
   // Прокрутка к последнему графику при добавлении нового графика
   useEffect(() => {
@@ -291,13 +1206,11 @@ export default function ReportsPage() {
     setError(null)
 
     try {
-      const token = localStorage.getItem('token') // Получаем токен из localStorage
-
       const response = await fetch(`${API_BASE_URL}/create_chart`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`, // Добавляем токен в заголовок
+          'Authorization': `Bearer ${token}`, // Токен добавляется здесь
         },
         body: JSON.stringify({
           table_name: tableName,
@@ -317,6 +1230,7 @@ export default function ReportsPage() {
       if (data.status === 'success') {
         setGraphs((prevGraphs) => [...prevGraphs, data]) // Добавляем новый график в массив
         setPrompt('') // Очищаем поле ввода
+        setError(null) // Сбрасываем ошибки
       } else {
         throw new Error('Не удалось создать график.')
       }
@@ -327,6 +1241,23 @@ export default function ReportsPage() {
     }
   }
 
+  // Функция для отображения таблицы через иконку глаза
+  const handleToggleTable = () => {
+    if (tableName) {
+      const selectedTable = tables.find((table) => table.table_name === tableName)
+      if (selectedTable) {
+        // Конструируем URL на основе table_name
+        const tableUrl = `${API_BASE_URL}/dashboard?table_name=${encodeURIComponent(tableName)}`
+        window.open(tableUrl, '_blank')
+        setError(null)
+      } else {
+        setError('Ссылка на таблицу недоступна.')
+      }
+    } else {
+      setError('Пожалуйста, выберите таблицу.')
+    }
+  }
+
   return (
     <>
       <div className="flex h-screen bg-gray-100">
@@ -334,74 +1265,119 @@ export default function ReportsPage() {
         <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:pl-72">
+        <div className="flex-1 flex flex-col lg:pl-80">
           <Navbar setSidebarOpen={setSidebarOpen} />
 
           <main className="flex-1 flex flex-col relative">
-            {/* Область ответов (графики) */}
+            {/* Область ответов (графики и таблицы) */}
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 mb-24 bg-gray-50">
-              <div className="max-w-4xl mx-auto">
-                {graphs.length === 0 ? (
-                  <div className="flex flex-col h-full justify-center items-center space-y-6">
-                    {/* Header Section */}
-                    <div className="text-center">
-                      <h1 className="font-semibold text-2xl">Аишка</h1>
-                      <p className="mt-4">
-                        Задавайте вопросы, чтобы получить информацию
-                        <br />
-                        о состоянии бизнеса и наиболее важных показателях
-                      </p>
-                    </div>
-                    {/* Suggested Questions */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-                      <div
-                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
-                        onClick={() =>
-                          setPrompt(
-                            'Какие показатели ухудшились в этом месяце?'
-                          )
-                        }
-                      >
-                        Какие показатели ухудшились в этом месяце?
-                      </div>
-                      <div
-                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
-                        onClick={() =>
-                          setPrompt('Есть ли риск кассового разрыва?')
-                        }
-                      >
-                        Есть ли риск кассового разрыва?
-                      </div>
-                      <div
-                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
-                        onClick={() =>
-                          setPrompt(
-                            'Какие мои товары имеют наибольшую маржу?'
-                          )
-                        }
-                      >
-                        Какие мои товары имеют наибольшую маржу?
-                      </div>
-                      <div
-                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
-                        onClick={() =>
-                          setPrompt(
-                            'Кто из продавцов не выполнил план в последнем месяце?'
-                          )
-                        }
-                      >
-                        Кто из продавцов не выполнил план в последнем месяце?
-                      </div>
-                    </div>
-                  </div>
-                ) : (
+              <div className="max-w-4xl mx-auto space-y-6">
+                {/* Отображение графиков */}
+                {graphs.length > 0 ? (
                   <div className="flex flex-col space-y-6">
                     {graphs.map((graph, index) => (
                       <div
                         key={index}
                         ref={index === graphs.length - 1 ? lastGraphRef : null}
                       >
-                        <div className="bg-gray-50 p-4 rounded-lg shadow">
+                        <div className="bg-white p-4 rounded-lg shadow relative">
+                          {/* Кнопки управления графиком */}
+                          <div className="absolute top-2 right-2 flex space-x-2">
+                            {/* Кнопка обновления графика */}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`${API_BASE_URL}/refresh_graph`, {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${token}`, // Токен добавляется здесь
+                                    },
+                                    body: JSON.stringify({
+                                      graph_id: index, // Предполагается, что у вас есть уникальный id
+                                      table_name: tableName,
+                                    }),
+                                  })
+
+                                  if (!response.ok) {
+                                    const errorText = await response.text()
+                                    throw new Error(
+                                      `Ошибка: ${response.status} ${response.statusText}. ${errorText}`
+                                    )
+                                  }
+
+                                  const data: ChartResponse = await response.json()
+
+                                  if (data.status === 'success') {
+                                    // Обновляем график в списке
+                                    setGraphs((prevGraphs) => {
+                                      const updatedGraphs = [...prevGraphs]
+                                      updatedGraphs[index] = data
+                                      return updatedGraphs
+                                    })
+                                  } else {
+                                    throw new Error('Не удалось обновить график.')
+                                  }
+                                } catch (err: any) {
+                                  setError(err.message || 'Произошла ошибка при обновлении графика.')
+                                }
+                              }}
+                              className="text-blue-500 hover:text-blue-700"
+                              aria-label="Обновить график"
+                            >
+                              {/* Иконка обновления */}
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582M20.418 19H20v-5h-.582M12 12v8m0-8l4-4m-4 4l-4-4" />
+                              </svg>
+                            </button>
+                            {/* Кнопка удаления графика */}
+                            <button
+                              onClick={async () => {
+                                const confirmDelete = window.confirm('Вы действительно хотите удалить этот график?')
+                                if (!confirmDelete) return
+
+                                try {
+                                  const response = await fetch(`${API_BASE_URL}/delete_graph`, {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${token}`, // Токен добавляется здесь
+                                    },
+                                    body: JSON.stringify({
+                                      graph_id: index, // Предполагается, что у вас есть уникальный id
+                                      table_name: tableName,
+                                    }),
+                                  })
+
+                                  if (!response.ok) {
+                                    const errorText = await response.text()
+                                    throw new Error(
+                                      `Ошибка: ${response.status} ${response.statusText}. ${errorText}`
+                                    )
+                                  }
+
+                                  const data = await response.json()
+
+                                  if (data.status === 'success') {
+                                    // Удаляем график из списка
+                                    setGraphs((prevGraphs) => prevGraphs.filter((_, i) => i !== index))
+                                  } else {
+                                    throw new Error('Не удалось удалить график.')
+                                  }
+                                } catch (err: any) {
+                                  setError(err.message || 'Произошла ошибка при удалении графика.')
+                                }
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                              aria-label="Удалить график"
+                            >
+                              {/* Иконка удаления */}
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+
                           <p className="text-sm text-gray-600 mb-2 ml-1">
                             <strong>Запрос:</strong> {graph.prompt}
                           </p>
@@ -417,21 +1393,66 @@ export default function ReportsPage() {
                             sandbox="allow-scripts allow-same-origin"
                           />
                           <p className="text-xs text-gray-500 mt-2">
-                            Создано:{' '}
-                            {new Date(
-                              graph.timestamp * 1000
-                            ).toLocaleString()}
+                            Создано: {new Date(graph.timestamp * 1000).toLocaleString()}
                           </p>
                         </div>
                       </div>
                     ))}
+                  </div>
+                ) : (
+                  // Если нет графиков, показать приветственное сообщение и предложенные вопросы
+                  <div className="flex flex-col h-full justify-center items-center space-y-6">
+                    {/* Header Section */}
+                    <div className="text-center">
+                      <h1 className="font-semibold text-2xl">Аишка</h1>
+                      <p className="mt-4">
+                        Задавайте вопросы, чтобы получить информацию
+                        <br />
+                        о состоянии бизнеса и наиболее важных показателях
+                      </p>
+                    </div>
+                    {/* Suggested Questions */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                      <div
+                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
+                        onClick={() =>
+                          setPrompt('Какие показатели ухудшились в этом месяце?')
+                        }
+                      >
+                        Какие показатели ухудшились в этом месяце?
+                      </div>
+                      <div
+                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
+                        onClick={() =>
+                          setPrompt('Есть ли риск кассового разрыва?')
+                        }
+                      >
+                        Есть ли риск кассового разрыва?
+                      </div>
+                      <div
+                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
+                        onClick={() =>
+                          setPrompt('Какие мои товары имеют наибольшую маржу?')
+                        }
+                      >
+                        Какие мои товары имеют наибольшую маржу?
+                      </div>
+                      <div
+                        className="p-10 border rounded-lg shadow hover:bg-gray-100 cursor-pointer"
+                        onClick={() =>
+                          setPrompt('Кто из продавцов не выполнил план в последнем месяце?')
+                        }
+                      >
+                        Кто из продавцов не выполнил план в последнем месяце?
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Фиксированный блок ввода запроса и дисклэймер */}
-            <div className="fixed bottom-0 left-0 right-0 lg:left-72 z-50">
+            <div className="fixed bottom-0 left-0 right-0 lg:left-80 z-50">
               {/* Внешний контейнер фиксированного блока ввода с серым фоном */}
               <div className="bg-gray-50">
                 {/* Внутренний контейнер с отступами и ограниченной шириной */}
@@ -444,7 +1465,10 @@ export default function ReportsPage() {
                         placeholder="Введите запрос"
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
-                        className="flex-1 border p-2 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`flex-1 border p-2 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          loading || tablesLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        disabled={loading || tablesLoading}
                       />
                       <button
                         onClick={handleSubmit}
@@ -455,36 +1479,51 @@ export default function ReportsPage() {
                       </button>
                     </div>
 
-                    {/* Селект источника */}
+                    {/* Селект источника с иконкой глаза справа */}
                     <div className="flex items-center space-x-2 w-full">
                       <label htmlFor="source" className="font-semibold">
                         Источник:
                       </label>
-                      <div className="flex-1">
-                        {tablesLoading ? (
-                          <p>Загрузка источников...</p>
-                        ) : tablesError ? (
-                          <p className="text-red-500">{tablesError}</p>
-                        ) : tables.length === 0 ? (
-                          <p>Таблицы не найдены.</p>
-                        ) : (
-                          <select
-                            id="source"
-                            value={tableName}
-                            onChange={(e) => setTableName(e.target.value)}
-                            className="w-full border p-2 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      <div className="flex-1 flex items-center">
+                        {/* Селект с уменьшенной высотой */}
+                        <select
+                          id="source"
+                          value={tableName}
+                          onChange={(e) => {
+                            setTableName(e.target.value)
+                          }}
+                          className={`flex-1 border p-1 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 h-8 text-sm ${
+                            loading || tablesLoading ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          disabled={loading || tablesLoading}
+                        >
+                          <option value="">Выберите источник</option>
+                          {tables.map((table) => (
+                            <option key={table.table_name} value={table.table_name}>
+                              {table.display_name}
+                            </option>
+                          ))}
+                        </select>
+                        
+                        {/* Иконка глаза, расположенная справа от селекта */}
+                        <button
+                          type="button"
+                          onClick={handleToggleTable}
+                          className="ml-2 text-gray-500 hover:text-gray-700 h-8 w-8 flex items-center justify-center"
+                          disabled={!tableName}
+                          aria-label="Показать таблицу"
+                        >
+                          {/* SVG иконка глаза */}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
                           >
-                            <option value="">Выберите источник</option>
-                            {tables.map((table) => (
-                              <option
-                                key={table.table_name}
-                                value={table.table_name}
-                              >
-                                {table.display_name}
-                              </option>
-                            ))}
-                          </select>
-                        )}
+                            <path d="M10 3C5.6 3 1.7 6.1 0 10c1.7 3.9 5.6 7 10 7s8.3-3.1 10-7c-1.7-3.9-5.6-7-10-7zm0 12a5 5 0 110-10 5 5 0 010 10z" />
+                            <path d="M10 7a3 3 0 100 6 3 3 0 000-6z" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
 
@@ -555,14 +1594,16 @@ File: page.tsx
 // app/dashboard/my/page.tsx
 'use client'
 
-import { useState, useEffect, Fragment } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
-import { PlusIcon, TrashIcon, CircleStackIcon } from '@heroicons/react/24/outline'
+import { useState, useEffect, useContext } from 'react'
+import { PlusIcon } from '@heroicons/react/24/outline'
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
 import axios from 'axios'
 import { API_BASE_URL } from 'baseapi/config'
 import { useAuth } from '@/app/context/AuthContext'
+import { useRouter } from 'next/navigation'
+import { TableContext } from '@/app/context/TableContext'
+import GraphRow from '@/components/GraphRow' // Импортируем GraphRow
 
 // Функция для объединения классов
 function classNames(...classes: Array<string>) {
@@ -580,6 +1621,7 @@ interface Graph {
 
 interface DashboardData {
   display_name: string
+  table_name: string
   data: Array<Record<string, any>>
   columns: Array<string>
   descriptions: Record<string, string>
@@ -589,16 +1631,13 @@ interface DashboardData {
 export default function MyDashboard() {
   const { token } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isAddMetricOpen, setIsAddMetricOpen] = useState(false)
-  const [currentSection, setCurrentSection] = useState<string>('')
-  const [metricName, setMetricName] = useState('')
   const [dashboardData, setDashboardData] = useState<DashboardData[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [notification, setNotification] = useState<{ type: string; message: string } | null>(null)
 
-  // Получение данных дэшборда при монтировании компонента
+  const router = useRouter()
+
   useEffect(() => {
-    // Загружаем данные из localStorage при монтировании компонента
     const storedData = localStorage.getItem('dashboardData')
     if (storedData) {
       setDashboardData(JSON.parse(storedData))
@@ -611,7 +1650,6 @@ export default function MyDashboard() {
     }
   }, [token])
 
-  // Функция для получения заголовков авторизации
   const getAuthHeaders = () => {
     return {
       'Content-Type': 'application/json',
@@ -627,7 +1665,6 @@ export default function MyDashboard() {
       })
       const data: DashboardData[] = response.data.tables || response.data
       setDashboardData(data)
-      // Сохраняем данные в localStorage
       localStorage.setItem('dashboardData', JSON.stringify(data))
     } catch (err: any) {
       console.error(err)
@@ -637,57 +1674,25 @@ export default function MyDashboard() {
     }
   }
 
-  // Обработчик открытия модального окна для добавления показателя
-  const openAddMetricModal = (section: string) => {
-    setCurrentSection(section)
-    setIsAddMetricOpen(true)
+  const handleAddMetric = (tableName: string) => {
+    router.push(`/dashboard/ai?table_name=${encodeURIComponent(tableName)}`)
   }
 
-  // Обработчик закрытия модального окна
-  const closeAddMetricModal = () => {
-    setIsAddMetricOpen(false)
-    setMetricName('')
-    setCurrentSection('')
-  }
-
-  // Обработчик добавления показателя
-  const handleAddMetric = async () => {
-    try {
-      const payload = {
-        table_name: currentSection,
-        chart_prompt: metricName,
-      }
-
-      // Отправьте соответствующий запрос на сервер для добавления графика
-      const response = await axios.post(`${API_BASE_URL}/create_chart`, payload, {
-        headers: getAuthHeaders(),
-      })
-
-      if (response.status === 200 && response.data.status === 'success') {
-        setNotification({ type: 'success', message: 'График успешно добавлен.' })
-        await fetchDashboardData()
-        closeAddMetricModal()
-      } else {
-        throw new Error(response.data.message || 'Не удалось добавить график.')
-      }
-    } catch (err: any) {
-      console.error(err)
-      setNotification({ type: 'error', message: err.response?.data?.message || 'Ошибка при добавлении графика.' })
-    }
-  }
-
-  // Обработчик удаления графика
-  const handleDeleteGraph = async (graphId: number, displayName: string) => {
+  const handleDeleteGraph = async (graphId: number, tableName: string) => {
     const confirmed = confirm('Вы действительно хотите удалить этот график?')
     if (!confirmed) return
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/delete_graph`, {
-        graph_id: graphId,
-        table_name: displayName,
-      }, {
-        headers: getAuthHeaders(),
-      })
+      const response = await axios.post(
+        `${API_BASE_URL}/delete_graph`,
+        {
+          graph_id: graphId,
+          table_name: tableName,
+        },
+        {
+          headers: getAuthHeaders(),
+        }
+      )
 
       if (response.status === 200 && response.data.status === 'success') {
         setNotification({ type: 'success', message: response.data.message })
@@ -697,33 +1702,41 @@ export default function MyDashboard() {
       }
     } catch (err: any) {
       console.error(err)
-      setNotification({ type: 'error', message: err.response?.data?.message || 'Что-то пошло не так.' })
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.message || 'Что-то пошло не так.',
+      })
     }
   }
 
-  // Обработчик обновления графика
-  const handleRefreshGraph = async (graphId: number, displayName: string) => {
+  const handleRefreshGraph = async (graphId: number, tableName: string) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/refresh_graph`, {
-        graph_id: graphId,
-        table_name: displayName,
-      }, {
-        headers: getAuthHeaders(),
-      })
+      const response = await axios.post(
+        `${API_BASE_URL}/refresh_graph`,
+        {
+          graph_id: graphId,
+          table_name: tableName,
+        },
+        {
+          headers: getAuthHeaders(),
+        }
+      )
 
       if (response.status === 200 && response.data.status === 'success') {
         setNotification({ type: 'success', message: response.data.message })
         await fetchDashboardData()
       } else {
-        throw new Error(response.data.message || 'Не удалось обновить график.')
+        throw new Error('Не удалось обновить график.')
       }
     } catch (err: any) {
       console.error(err)
-      setNotification({ type: 'error', message: err.response?.data?.message || 'Что-то пошло не так.' })
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.message || 'Что-то пошло не так.',
+      })
     }
   }
 
-  // Автоматически скрывать уведомление через 5 секунд
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => {
@@ -734,12 +1747,15 @@ export default function MyDashboard() {
     }
   }, [notification])
 
+  const { tableName, setTableName } = useContext(TableContext)
+
   return (
-    <div>
+    <div className="flex overflow-x-hidden">
       {/* Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      <div className="lg:pl-72">
+      {/* Основной контент */}
+      <div className="flex-1 lg:pl-80">
         {/* Navbar */}
         <Navbar setSidebarOpen={setSidebarOpen} />
 
@@ -769,7 +1785,7 @@ export default function MyDashboard() {
               </div>
             )}
 
-            {/* Обработка состояния загрузки */}
+            {/* Состояние загрузки */}
             {isLoading && (
               <div className="flex justify-center items-center h-64">
                 <p className="text-gray-500">Загрузка данных...</p>
@@ -789,7 +1805,7 @@ export default function MyDashboard() {
                     <div className="mt-4 flex flex-shrink-0 md:ml-4 md:mt-0">
                       <button
                         type="button"
-                        onClick={() => openAddMetricModal(section.display_name)}
+                        onClick={() => handleAddMetric(section.table_name)}
                         className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                       >
                         <PlusIcon aria-hidden="true" className="h-5 w-5" />
@@ -797,54 +1813,21 @@ export default function MyDashboard() {
                     </div>
                   </div>
 
-                  {/* Отображение графиков */}
-                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {section.graphs && section.graphs.length > 0 ? (
-                      section.graphs.map((graph) => (
-                        <div key={graph.id} className="relative bg-white p-4 rounded-lg shadow flex flex-col">
-                          {/* Кнопка удаления графика */}
-                          <button
-                            onClick={() => handleDeleteGraph(graph.id, section.display_name)}
-                            className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                            aria-label="Удалить график"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
-
-                          {/* Кнопка обновления графика */}
-                          <button
-                            onClick={() => handleRefreshGraph(graph.id, section.display_name)}
-                            className="absolute top-2 left-2 text-indigo-500 hover:text-indigo-700"
-                            aria-label="Обновить график"
-                          >
-                            <CircleStackIcon className="h-5 w-5" />
-                          </button>
-
-                          {/* Отображение графика через iframe */}
-                          <div className="flex-1">
-                            <iframe
-                              srcDoc={atob(graph.graph_html)}
-                              style={{
-                                width: '100%',
-                                height: '500px', // Установленная фиксированная высота
-                                border: 'none',
-                                overflow: 'hidden',
-                              }}
-                              title={graph.prompt}
-                              sandbox="allow-scripts allow-same-origin"
-                            />
-                          </div>
-
-                          <p className="mt-2 text-sm text-gray-500">{graph.prompt}</p>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="col-span-full text-center p-4 text-gray-500">
-                        Показатели отсутствуют. Нажмите на кнопку{' '}
-                        <PlusIcon aria-hidden="true" className="inline h-5 w-5" /> справа, чтобы добавить.
-                      </div>
-                    )}
-                  </div>
+                  {/* Компонент GraphRow с горизонтальной прокруткой */}
+                  {section.graphs && section.graphs.length > 0 ? (
+                    <GraphRow
+                      graphs={section.graphs}
+                      tableName={section.table_name}
+                      handleDeleteGraph={handleDeleteGraph}
+                      handleRefreshGraph={handleRefreshGraph}
+                      handleAddMetric={handleAddMetric}
+                    />
+                  ) : (
+                    <div className="mt-4 text-center p-4 text-gray-500">
+                      Показатели отсутствуют. Нажмите на кнопку{' '}
+                      <PlusIcon aria-hidden="true" className="inline h-5 w-5" /> справа, чтобы добавить.
+                    </div>
+                  )}
                 </section>
               ))
             ) : (
@@ -854,87 +1837,48 @@ export default function MyDashboard() {
                 </div>
               )
             )}
-
-            {/* Модальное окно для добавления показателя */}
-            <Transition.Root show={isAddMetricOpen} as={Fragment}>
-              <Dialog as="div" className="relative z-10" onClose={closeAddMetricModal}>
-                {/* Затемняющий фон */}
-                <Transition.Child
-                  as={Fragment}
-                  enter="ease-out duration-300"
-                  enterFrom="opacity-0"
-                  enterTo="opacity-100"
-                  leave="ease-in duration-200"
-                  leaveFrom="opacity-100"
-                  leaveTo="opacity-0"
-                >
-                  <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-                </Transition.Child>
-
-                {/* Контейнер модального окна */}
-                <div className="fixed inset-0 z-10 overflow-y-auto">
-                  <div className="flex min-h-full items-center justify-center p-4 text-center">
-                    <Transition.Child
-                      as={Fragment}
-                      enter="ease-out duration-300"
-                      enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                      enterTo="opacity-100 translate-y-0 sm:scale-100"
-                      leave="ease-in duration-200"
-                      leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                      leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    >
-                      <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                        {/* Заголовок модального окна */}
-                        <Dialog.Title
-                          as="h3"
-                          className="text-lg leading-6 font-medium text-gray-900 text-center"
-                        >
-                          Какой показатель вы хотите добавить?
-                        </Dialog.Title>
-                        <div className="mt-5">
-                          {/* Поле ввода названия показателя */}
-                          <div className="mb-4">
-                            <label htmlFor="metricName" className="block text-sm font-medium text-gray-700">
-                              Название показателя
-                            </label>
-                            <input
-                              id="metricName"
-                              type="text"
-                              required
-                              placeholder="Например, выручка, прибыль, проданные товары"
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                              value={metricName}
-                              onChange={(e) => setMetricName(e.target.value)}
-                            />
-                          </div>
-
-                          {/* Кнопка добавления показателя */}
-                          <div className="mt-5 sm:mt-6">
-                            <button
-                              type="button"
-                              disabled={!metricName}
-                              className={classNames(
-                                metricName
-                                  ? 'bg-indigo-600 hover:bg-indigo-700'
-                                  : 'bg-indigo-300 cursor-not-allowed',
-                                'w-full inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-base font-medium text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:text-sm'
-                              )}
-                              onClick={handleAddMetric}
-                            >
-                              Добавить показатель
-                            </button>
-                          </div>
-                        </div>
-                      </Dialog.Panel>
-                    </Transition.Child>
-                  </div>
-                </div>
-              </Dialog>
-            </Transition.Root>
-            {/* Конец модального окна */}
           </div>
         </main>
       </div>
+
+      {/* Стили для кастомного скроллбара */}
+      <style jsx>{`
+        /* Скрыть стандартные скроллбары */
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+
+        .scrollbar-hide {
+          -ms-overflow-style: none; /* IE and Edge */
+          scrollbar-width: none; /* Firefox */
+        }
+
+        /* Стилизация кастомного скроллбара для горизонтальной прокрутки */
+        .overflow-x-auto::-webkit-scrollbar {
+          height: 8px;
+        }
+
+        .overflow-x-auto::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+
+        .overflow-x-auto::-webkit-scrollbar-thumb {
+          background-color: rgba(0, 0, 0, 0.2);
+          border-radius: 4px;
+        }
+
+        /* Для Firefox */
+        .overflow-x-auto {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(0, 0, 0, 0.2) #f1f1f1;
+        }
+
+        /* Убираем внутренние скроллбары у iframe, если они есть */
+        iframe {
+          overflow: hidden;
+        }
+      `}</style>
     </div>
   )
 }
@@ -967,7 +1911,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setProfile(user)
+      setProfile({ ...user, auth_type: '' }) // Добавляем значение для auth_type
     }
   }, [user])
 
@@ -1099,6 +2043,7 @@ import {
   DocumentIcon,
   PlayCircleIcon,
   XMarkIcon,
+  ArrowPathIcon 
 } from '@heroicons/react/24/outline'
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
@@ -1106,12 +2051,10 @@ import axios from 'axios'
 import { API_BASE_URL } from 'baseapi/config'
 import { useAuth } from '@/app/context/AuthContext'
 
-// Функция для объединения классов
 function classNames(...classes: Array<string>) {
   return classes.filter(Boolean).join(' ')
 }
 
-// Интерфейсы
 interface Tab {
   name: string
   href: string
@@ -1122,7 +2065,7 @@ interface TableMetadata {
   table_name: string
   display_name: string
   table_type: 'excel' | 'google'
-  last_updated: string // ISO формат
+  last_updated: number // Unix формат
 }
 
 interface ColumnSchema {
@@ -1131,7 +2074,17 @@ interface ColumnSchema {
   column_desc: string
 }
 
-// Вкладки
+interface TableSchema {
+  name: string
+  columns: ColumnSchema[]
+}
+
+interface Graph {
+  graph_id: number
+  table_name: string
+  graph_data: any // Замените на ваш тип данных графика
+}
+
 const initialTabs: Array<Tab> = [
   { name: 'Google таблицы', href: '#', current: true },
   { name: 'Excel', href: '#', current: false },
@@ -1149,32 +2102,28 @@ export default function ReportsPage() {
   const [reportName, setReportName] = useState('')
   const [currentTabs, setCurrentTabs] = useState(initialTabs)
   const [googleSheetURL, setGoogleSheetURL] = useState('')
+  const [numRows, setNumRows] = useState<number | null>(null)
   const [tables, setTables] = useState<TableMetadata[]>([])
+  const [graphs, setGraphs] = useState<Graph[]>([]) // Состояние для графиков
   const [loading, setLoading] = useState<boolean>(false)
+  const [isProcessing, setIsProcessing] = useState<boolean>(false) // Состояние для прелоадера
   const [notification, setNotification] = useState<{ type: string; message: string } | null>(null)
   const [currentEditingTable, setCurrentEditingTable] = useState<TableMetadata | null>(null)
-  const [schema, setSchema] = useState<{ name: string; columns: ColumnSchema[] } | null>(null)
-  const [newTableData, setNewTableData] = useState<{ sheet_url: string; display_name: string } | null>(null)
+  const [schema, setSchema] = useState<TableSchema | null>(null)
 
   const currentTab = currentTabs.find((tab) => tab.current)?.name
 
-  // Загрузка таблиц при монтировании компонента
+  // Загрузка таблиц и графиков при монтировании компонента
   useEffect(() => {
-    const storedTables = localStorage.getItem('tables')
-    if (storedTables) {
-      setTables(JSON.parse(storedTables))
-    } else {
-      setLoading(true)
-    }
-
     if (token) {
       fetchTables()
+      fetchGraphs()
     }
   }, [token])
 
   const getAuthHeaders = () => {
     return {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     }
   }
 
@@ -1187,7 +2136,6 @@ export default function ReportsPage() {
       const data = response.data
       if (data.tables && Array.isArray(data.tables)) {
         setTables(data.tables)
-        localStorage.setItem('tables', JSON.stringify(data.tables))
       } else {
         setNotification({ type: 'error', message: 'Некорректный формат данных от сервера.' })
       }
@@ -1199,95 +2147,95 @@ export default function ReportsPage() {
     }
   }
 
-  // Добавление отчета
+  // Функция для получения списка графиков (заглушка, нужно реализовать на бэкенде)
+  const fetchGraphs = async () => {
+    // Здесь вы должны реализовать запрос для получения списка графиков
+    // Для демонстрации используем заглушку
+    const sampleGraphs: Graph[] = [
+      // Пример данных графиков
+      // { graph_id: 1, table_name: 'table_1', graph_data: {...} },
+    ]
+    setGraphs(sampleGraphs)
+  }
+
+  // Обработчик добавления отчета
   const handleAddReport = async () => {
     try {
       if (currentTab === 'Google таблицы') {
-        const payload = {
-          google_sheet_url: googleSheetURL,
-          display_name: reportName || 'Новый Google отчет',
-          report_type: reportType,
-        }
+        setIsProcessing(true) // Начинаем процесс, показываем прелоадер
 
-        const response = await axios.post(`${API_BASE_URL}/add_google_table`, payload, {
-          headers: getAuthHeaders(),
-        })
-
-        if (response.status === 200 && response.data.status === 'success') {
-          const newTable: TableMetadata = response.data.table
-          setTables([...tables, newTable])
-          localStorage.setItem('tables', JSON.stringify([...tables, newTable]))
-          setNotification({ type: 'success', message: 'Google таблица успешно добавлена.' })
-
-          // Генерация схемы таблицы
-          const schemaResponse = await axios.post(
-            `${API_BASE_URL}/generate_schema`,
-            {
-              sheet_url: googleSheetURL,
-              num_rows: null,
-            },
-            {
-              headers: getAuthHeaders(),
-            }
-          )
-
-          if (schemaResponse.status === 200 && schemaResponse.data) {
-            setSchema(schemaResponse.data)
-            setNewTableData({
-              sheet_url: googleSheetURL,
-              display_name: reportName || 'Новый Google отчет',
-            })
-            setIsOpen(false)
-            setIsEditColumnsOpen(true)
-            setGoogleSheetURL('')
-            setReportName('')
-          } else {
-            throw new Error('Не удалось сгенерировать схему таблицы.')
+        // Генерация схемы таблицы
+        const schemaResponse = await axios.post(
+          `${API_BASE_URL}/generate_schema`,
+          {
+            sheet_url: googleSheetURL,
+            num_rows: numRows,
+          },
+          {
+            headers: getAuthHeaders(),
           }
+        )
+
+        if (schemaResponse.status === 200 && schemaResponse.data) {
+          setSchema(schemaResponse.data)
+          setIsOpen(false)
+          setIsEditColumnsOpen(true)
         } else {
-          throw new Error(response.data.message || 'Не удалось добавить Google таблицу.')
+          throw new Error('Не удалось сгенерировать схему таблицы.')
         }
       }
+      // Логика для Excel можно добавить здесь
     } catch (err: any) {
       console.error(err)
       setNotification({
         type: 'error',
         message: err.response?.data?.message || 'Ошибка при добавлении отчета.',
       })
+    } finally {
+      setIsProcessing(false) // Завершаем процесс, скрываем прелоадер
     }
   }
 
   // Создание таблицы после редактирования колонок
   const handleCreateTable = async () => {
+    if (!schema) return
+
     try {
-      if (schema && newTableData) {
-        const payload = {
-          json_data: schema,
-          sheet_url: newTableData.sheet_url,
-          num_rows: null,
-          display_name: newTableData.display_name,
-        }
+      setIsProcessing(true) // Начинаем процесс, показываем прелоадер
 
-        const response = await axios.post(`${API_BASE_URL}/create_table`, payload, {
-          headers: getAuthHeaders(),
-        })
+      const payload = {
+        json_data: schema,
+        sheet_url: googleSheetURL,
+        num_rows: numRows,
+        display_name: reportName || 'Новый Google отчет',
+      }
 
-        if (response.status === 200 && response.data.status === 'success') {
-          setNotification({ type: 'success', message: 'Таблица успешно создана.' })
-          setIsEditColumnsOpen(false)
-          setSchema(null)
-          setNewTableData(null)
-          await fetchTables()
-        } else {
-          throw new Error(response.data.message || 'Не удалось создать таблицу.')
+      const response = await axios.post(`${API_BASE_URL}/create_table`, payload, {
+        headers: getAuthHeaders(),
+      })
+
+      if (response.status === 200 && response.data.status === 'success') {
+        const newTable: TableMetadata = {
+          table_name: response.data.table_name,
+          display_name: reportName || 'Новый Google отчет',
+          table_type: 'google',
+          last_updated: Date.now() / 1000,
         }
+        setTables([...tables, newTable])
+        setNotification({ type: 'success', message: 'Таблица успешно создана.' })
+        setIsEditColumnsOpen(false)
+        setSchema(null)
+        setGoogleSheetURL('')
+        setReportName('')
+        setNumRows(null)
+      } else {
+        throw new Error(response.data.message || 'Не удалось создать таблицу.')
       }
     } catch (err: any) {
       console.error(err)
-      setNotification({
-        type: 'error',
-        message: err.response?.data?.message || 'Ошибка при создании таблицы.',
-      })
+      setNotification({ type: 'error', message: err.response?.data?.message || 'Ошибка при создании таблицы.' })
+    } finally {
+      setIsProcessing(false) // Завершаем процесс, скрываем прелоадер
     }
   }
 
@@ -1326,14 +2274,18 @@ export default function ReportsPage() {
 
     try {
       setLoading(true)
-      const response = await axios.delete(`${API_BASE_URL}/tables/${table_name}`, {
-        headers: getAuthHeaders(),
-      })
+      // Предположим, что для удаления таблицы используется метод POST с указанием имени таблицы в теле
+      const response = await axios.post(
+        `${API_BASE_URL}/delete_table`,
+        { table_name },
+        {
+          headers: getAuthHeaders(),
+        }
+      )
 
       if (response.status === 200 && response.data.status === 'success') {
         const updatedTables = tables.filter((table) => table.table_name !== table_name)
         setTables(updatedTables)
-        localStorage.setItem('tables', JSON.stringify(updatedTables))
         setNotification({ type: 'success', message: 'Таблица успешно удалена.' })
       } else {
         throw new Error(response.data.message || 'Не удалось удалить таблицу.')
@@ -1343,6 +2295,67 @@ export default function ReportsPage() {
       setNotification({
         type: 'error',
         message: err.response?.data?.message || 'Ошибка при удалении таблицы.',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Обновление графика
+  const handleUpdateGraph = async (graph_id: number, table_name: string) => {
+    try {
+      setLoading(true)
+      const response = await axios.post(
+        `${API_BASE_URL}/refresh_graph`,
+        { graph_id, table_name },
+        {
+          headers: getAuthHeaders(),
+        }
+      )
+
+      if (response.status === 200 && response.data.status === 'success') {
+        setNotification({ type: 'success', message: 'График успешно обновлен.' })
+        await fetchGraphs()
+      } else {
+        throw new Error(response.data.message || 'Не удалось обновить график.')
+      }
+    } catch (err: any) {
+      console.error(err)
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.message || 'Ошибка при обновлении графика.',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Удаление графика
+  const handleDeleteGraph = async (graph_id: number, table_name: string) => {
+    if (!confirm('Вы действительно хотите удалить этот график?')) return
+
+    try {
+      setLoading(true)
+      const response = await axios.post(
+        `${API_BASE_URL}/delete_graph`,
+        { graph_id, table_name },
+        {
+          headers: getAuthHeaders(),
+        }
+      )
+
+      if (response.status === 200 && response.data.status === 'success') {
+        const updatedGraphs = graphs.filter((graph) => graph.graph_id !== graph_id)
+        setGraphs(updatedGraphs)
+        setNotification({ type: 'success', message: 'График успешно удален.' })
+      } else {
+        throw new Error(response.data.message || 'Не удалось удалить график.')
+      }
+    } catch (err: any) {
+      console.error(err)
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.message || 'Ошибка при удалении графика.',
       })
     } finally {
       setLoading(false)
@@ -1378,10 +2391,39 @@ export default function ReportsPage() {
 
   return (
     <div>
+      {/* Прелоадер */}
+      {isProcessing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-700 bg-opacity-75">
+          <div className="flex items-center space-x-2">
+            <svg
+              className="w-6 h-6 animate-spin text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v8H4z"
+              ></path>
+            </svg>
+            <span className="text-white text-lg">Обработка...</span>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      <div className="lg:pl-72">
+      <div className="lg:pl-80">
         {/* Navbar */}
         <Navbar setSidebarOpen={setSidebarOpen} />
 
@@ -1570,13 +2612,6 @@ export default function ReportsPage() {
                                 >
                                   Удалить
                                 </button>
-
-                                <button
-                                  // onClick={() => handleEditTable(table)}
-                                  className="text-gray-600 hover:underline"
-                                >
-                                  Редактировать
-                                </button>
                               </td>
                             </tr>
                           ))}
@@ -1587,119 +2622,122 @@ export default function ReportsPage() {
               </div>
             </div>
 
+
             {/* Модальное окно для добавления отчета */}
             <Transition.Root show={isOpen} as={Fragment}>
-              <Dialog as="div" className="fixed inset-0 z-50 overflow-y-auto" onClose={setIsOpen}>
-                <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-                  <Transition.Child
-                    as={Fragment}
-                    enter="ease-out duration-300"
-                    enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    enterTo="opacity-100 translate-y-0 sm:scale-100"
-                    leave="ease-in duration-200"
-                    leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                    leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                  >
-                    <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                      {/* Кнопка закрытия */}
-                      <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
-                        <button
-                          type="button"
-                          className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <span className="sr-only">Закрыть</span>
-                          <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                        </button>
-                      </div>
+              <Dialog as="div" className="relative z-10" onClose={setIsOpen}>
+                {/* Затемняющий фон */}
+                <Transition.Child
+                  as={Fragment}
+                  enter="ease-out duration-300"
+                  enterFrom="opacity-0"
+                  enterTo="opacity-100"
+                  leave="ease-in duration-200"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+                </Transition.Child>
 
-                      {/* Содержимое модального окна */}
-                      <div className="sm:flex sm:items-start">
-                        <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                          <Dialog.Title
-                            as="h3"
-                            className="text-lg leading-6 font-medium text-gray-900"
-                          >
-                            Добавить Google таблицу
-                          </Dialog.Title>
-                          <div className="mt-2">
-                            <form className="space-y-4">
-                              <div>
-                                <label htmlFor="reportName" className="block text-sm font-medium text-gray-700">
-                                  Название отчета
-                                </label>
-                                <input
-                                  type="text"
-                                  name="reportName"
-                                  id="reportName"
-                                  value={reportName}
-                                  onChange={(e) => setReportName(e.target.value)}
-                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                  placeholder="Например, Отчет по продажам"
-                                />
-                              </div>
-                              <div>
-                                <label htmlFor="googleSheetURL" className="block text-sm font-medium text-gray-700">
-                                  Ссылка на Google таблицу
-                                </label>
-                                <input
-                                  type="url"
-                                  name="googleSheetURL"
-                                  id="googleSheetURL"
-                                  value={googleSheetURL}
-                                  onChange={(e) => setGoogleSheetURL(e.target.value)}
-                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                  placeholder="https://docs.google.com/spreadsheets/..."
-                                />
-                              </div>
-                              <div>
-                                <label htmlFor="reportType" className="block text-sm font-medium text-gray-700">
-                                  Тип отчета
-                                </label>
-                                <select
-                                  id="reportType"
-                                  name="reportType"
-                                  value={reportType}
-                                  onChange={(e) => setReportType(e.target.value)}
-                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                                >
-                                  <option>Управленческий отчет</option>
-                                  <option>Бухгалтерский отчет</option>
-                                  <option>Иной отчет</option>
-                                </select>
-                              </div>
-                            </form>
+                {/* Контейнер модального окна */}
+                <div className="fixed inset-0 z-10 overflow-y-auto">
+                  <div className="flex min-h-full items-center justify-center p-4 text-center">
+                    <Transition.Child
+                      as={Fragment}
+                      enter="ease-out duration-300"
+                      enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                      enterTo="opacity-100 translate-y-0 sm:scale-100"
+                      leave="ease-in duration-200"
+                      leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                      leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    >
+                      <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                        {/* Заголовок модального окна */}
+                        <Dialog.Title
+                          as="h3"
+                          className="text-lg leading-6 font-medium text-gray-900 text-center"
+                        >
+                          Добавление Google таблицы
+                        </Dialog.Title>
+                        <div className="mt-5">
+                          {/* Поле ввода ссылки на Google таблицу */}
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Ссылка на Google таблицу
+                            </label>
+                            <input
+                              type="url"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
+                              placeholder="Вставьте ссылку на Google таблицу"
+                              value={googleSheetURL}
+                              onChange={(e) => setGoogleSheetURL(e.target.value)}
+                            />
+                          </div>
+
+                          {/* Поле ввода количества строк */}
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Количество строк для анализа (оставьте пустым для всех строк)
+                            </label>
+                            <input
+                              type="number"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
+                              placeholder="Например, 100"
+                              value={numRows !== null ? numRows : ''}
+                              onChange={(e) => setNumRows(e.target.value ? parseInt(e.target.value) : null)}
+                            />
+                          </div>
+
+                          {/* Выпадающий список типа отчета */}
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Тип отчета
+                            </label>
+                            <select
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
+                              value={reportType}
+                              onChange={(e) => setReportType(e.target.value)}
+                            >
+                              <option>Управленческий отчет</option>
+                              <option>Отчет по продажам / маркетингу</option>
+                              <option>Отчет по персоналу</option>
+                              <option>Отчет по проектам</option>
+                              <option>Другой</option>
+                            </select>
+                          </div>
+
+                          {/* Поле названия отчета */}
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Название отчета
+                            </label>
+                            <input
+                              type="text"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
+                              placeholder="Например, о прибылях и убытках, о продажах и тд"
+                              value={reportName}
+                              onChange={(e) => setReportName(e.target.value)}
+                            />
+                          </div>
+
+                          {/* Кнопка действия */}
+                          <div className="mt-5 sm:mt-6">
+                            <button
+                              type="button"
+                              className="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:text-sm"
+                              onClick={handleAddReport}
+                            >
+                              Добавить отчет
+                            </button>
                           </div>
                         </div>
-                      </div>
-                      {/* Кнопки действия */}
-                      <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                        <button
-                          type="button"
-                          onClick={handleAddReport}
-                          disabled={!googleSheetURL || !reportName}
-                          className={classNames(
-                            'inline-flex w-full justify-center rounded-md border border-transparent px-4 py-2 text-base font-medium shadow-sm focus:outline-none sm:ml-3 sm:w-auto sm:text-sm',
-                            !googleSheetURL || !reportName
-                              ? 'bg-gray-300 text-gray-700 cursor-not-allowed'
-                              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                          )}
-                        >
-                          Добавить
-                        </button>
-                        <button
-                          type="button"
-                          className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          Отмена
-                        </button>
-                      </div>
-                    </Dialog.Panel>
-                  </Transition.Child>
+                      </Dialog.Panel>
+                    </Transition.Child>
+                  </div>
                 </div>
               </Dialog>
             </Transition.Root>
+            {/* Конец модального окна для добавления отчета */}
 
             {/* Модальное окно для редактирования колонок */}
             <Transition.Root show={isEditColumnsOpen} as={Fragment}>
@@ -1717,7 +2755,7 @@ export default function ReportsPage() {
                     <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:p-6">
                       {/* Содержимое модального окна */}
                       <div>
-                        <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900 text-center">
                           Редактирование колонок таблицы
                         </Dialog.Title>
                         <div className="mt-4">
@@ -1793,6 +2831,7 @@ export default function ReportsPage() {
                 </div>
               </Dialog>
             </Transition.Root>
+            {/* Конец модального окна для редактирования колонок */}
           </div>
         </main>
       </div>
@@ -1835,8 +2874,6 @@ export default ProtectedRoute
 
 File: actions.ts
 'use server'
-import { signIn } from "@/auth";
-
 async function sleep (ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -1855,8 +2892,13 @@ export async function authorization (formData: FormData) {
 }
 
 export async function googleAuthorization () {  
-  await signIn('google')
+  // await signIn('google')
 }
+
+function signIn(arg0: string, formData: FormData) {
+  throw new Error("Function not implemented.");
+}
+
 
 File: prisma.ts
 import { PrismaClient } from "@prisma/client"
@@ -2198,47 +3240,4 @@ export default function SignupPage() {
   )
 }
 
-
-File: page.tsx
-// import { auth, signIn, signOut } from "../../auth";
-
-function SignIn() {
-//   return (
-//     <form
-//       action={async () => {
-//         "use server";
-//         await signIn("github");
-//       }}
-//     >
-//       <p>You are not logged in</p>
-//       <button type="submit">Sign in with GitHub</button>
-//     </form>
-//   );
-// }
-
-// function SignOut({ children }: { children: React.ReactNode }) {
-//   return (
-//     <form
-//       action={async () => {
-//         "use server";
-//         await signOut();
-//       }}
-//     >
-//       <p>{children}</p>
-//       <button type="submit">Sign out</button>
-//     </form>
-//   );
-// }
-
-// export default async function Page() {
-//   let session = await auth();
-//   let user = session?.user?.email;
-
-//   return (
-//     <section>
-//       <h1>Home</h1>
-//       <div>{user ? <SignOut>{`Welcome ${user}`}</SignOut> : <SignIn />}</div>
-//     </section>
-  // );
-}
 

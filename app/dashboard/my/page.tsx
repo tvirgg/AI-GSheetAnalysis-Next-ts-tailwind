@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect, useContext } from 'react'
-import { PlusIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, PencilIcon } from '@heroicons/react/24/outline'
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
 import axios from 'axios'
@@ -10,14 +10,8 @@ import { API_BASE_URL } from 'baseapi/config'
 import { useAuth } from '@/app/context/AuthContext'
 import { useRouter } from 'next/navigation'
 import { TableContext } from '@/app/context/TableContext'
-import GraphRow from '@/components/GraphRow' // Импортируем GraphRow
+import GraphRow from '@/components/GraphRow'
 
-// Функция для объединения классов
-function classNames(...classes: Array<string>) {
-  return classes.filter(Boolean).join(' ')
-}
-
-// Интерфейсы для типов данных
 interface Graph {
   id: number
   timestamp: number
@@ -41,6 +35,8 @@ export default function MyDashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [notification, setNotification] = useState<{ type: string; message: string } | null>(null)
+  const [editingTableNameId, setEditingTableNameId] = useState<string | null>(null)
+  const [newTableName, setNewTableName] = useState<string>('')
 
   const router = useRouter()
 
@@ -154,22 +150,43 @@ export default function MyDashboard() {
     }
   }, [notification])
 
-  const { tableName, setTableName } = useContext(TableContext)
+  const handleSaveTableName = async (tableName: string) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/update_table_name`,
+        { table_name: tableName, display_name: newTableName },
+        { headers: getAuthHeaders() }
+      )
+      if (response.status === 200 && response.data.status === 'success') {
+        setNotification({ type: 'success', message: 'Название таблицы обновлено.' })
+        await fetchDashboardData()
+        setEditingTableNameId(null)
+      } else {
+        throw new Error(response.data.message || 'Не удалось обновить название таблицы.')
+      }
+    } catch (err: any) {
+      console.error(err)
+      setNotification({
+        type: 'error',
+        message: err.response?.data?.message || 'Ошибка при обновлении названия таблицы.',
+      })
+    }
+  }
 
   return (
     <div className="flex overflow-x-hidden">
       {/* Sidebar */}
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      {/* Основной контент */}
+      {/* Main content */}
       <div className="flex-1 lg:pl-80">
         {/* Navbar */}
         <Navbar setSidebarOpen={setSidebarOpen} />
 
-        {/* Основной контент страницы */}
+        {/* Main content */}
         <main className="py-10">
           <div className="px-4 sm:px-6 lg:px-8">
-            {/* Уведомления */}
+            {/* Notifications */}
             {notification && (
               <div className="mt-4">
                 <div
@@ -192,35 +209,75 @@ export default function MyDashboard() {
               </div>
             )}
 
-            {/* Состояние загрузки */}
+            {/* Loading state */}
             {isLoading && (
               <div className="flex justify-center items-center h-64">
                 <p className="text-gray-500">Загрузка данных...</p>
               </div>
             )}
 
-            {/* Отображение данных дэшборда */}
+            {/* Dashboard data */}
             {!isLoading && dashboardData && dashboardData.length > 0 ? (
               dashboardData.map((section) => (
-                <section key={section.display_name} className="mt-12">
+                <section key={section.table_name} className="mt-12">
                   <div className="mt-2 md:flex md:items-center md:justify-between">
                     <div className="min-w-0 flex-1">
-                      <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
-                        {section.display_name}
-                      </h2>
+                      {editingTableNameId === section.table_name ? (
+                        <input
+                          type="text"
+                          value={newTableName}
+                          onChange={(e) => setNewTableName(e.target.value)}
+                          className="border px-2 py-1 rounded w-full"
+                        />
+                      ) : (
+                        <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                          {section.display_name}
+                        </h2>
+                      )}
                     </div>
                     <div className="mt-4 flex flex-shrink-0 md:ml-4 md:mt-0">
-                      <button
-                        type="button"
-                        onClick={() => handleAddMetric(section.table_name)}
-                        className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                      >
-                        <PlusIcon aria-hidden="true" className="h-5 w-5" />
-                      </button>
+                      {editingTableNameId === section.table_name ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleSaveTableName(section.table_name)}
+                            className="inline-flex items-center rounded-md bg-green-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-600"
+                          >
+                            Сохранить
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingTableNameId(null)}
+                            className="ml-2 inline-flex items-center rounded-md bg-gray-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-600"
+                          >
+                            Отмена
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleAddMetric(section.table_name)}
+                            className="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                          >
+                            <PlusIcon aria-hidden="true" className="h-5 w-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingTableNameId(section.table_name)
+                              setNewTableName(section.display_name)
+                            }}
+                            className="ml-2 inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                          >
+                            <PencilIcon aria-hidden="true" className="h-5 w-5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  {/* Компонент GraphRow с горизонтальной прокруткой */}
+                  {/* GraphRow component */}
                   {section.graphs && section.graphs.length > 0 ? (
                     <GraphRow
                       graphs={section.graphs}
@@ -247,45 +304,6 @@ export default function MyDashboard() {
           </div>
         </main>
       </div>
-
-      {/* Стили для кастомного скроллбара */}
-      <style jsx>{`
-        /* Скрыть стандартные скроллбары */
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-
-        .scrollbar-hide {
-          -ms-overflow-style: none; /* IE and Edge */
-          scrollbar-width: none; /* Firefox */
-        }
-
-        /* Стилизация кастомного скроллбара для горизонтальной прокрутки */
-        .overflow-x-auto::-webkit-scrollbar {
-          height: 8px;
-        }
-
-        .overflow-x-auto::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 4px;
-        }
-
-        .overflow-x-auto::-webkit-scrollbar-thumb {
-          background-color: rgba(0, 0, 0, 0.2);
-          border-radius: 4px;
-        }
-
-        /* Для Firefox */
-        .overflow-x-auto {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(0, 0, 0, 0.2) #f1f1f1;
-        }
-
-        /* Убираем внутренние скроллбары у iframe, если они есть */
-        iframe {
-          overflow: hidden;
-        }
-      `}</style>
     </div>
   )
 }

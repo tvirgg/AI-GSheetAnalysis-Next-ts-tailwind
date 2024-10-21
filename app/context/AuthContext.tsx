@@ -1,6 +1,7 @@
+// app/context/AuthContext.tsx
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { API_BASE_URL } from 'baseapi/config'
 
@@ -8,6 +9,7 @@ interface User {
   id: number
   email: string
   username: string
+  auth_type: string
 }
 
 interface AuthContextType {
@@ -44,24 +46,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!response.ok) throw new Error('Failed to fetch user data')
       const data = await response.json()
       setUser(data.user_data)
-  
-      // Сохранение пользователя в localStorage
-      localStorage.setItem('user', JSON.stringify(data.user_data))
+      // Optionally, you can store user data in localStorage
+      // localStorage.setItem('user', JSON.stringify(data.user_data))
     } catch (error) {
+      console.error('Failed to fetch user data:', error)
       logoutUser()
     } finally {
       setLoading(false)
     }
   }
+
   const loginUser = async (newToken: string) => {
     localStorage.setItem('token', newToken)
     setToken(newToken)
     await fetchUserData(newToken)
-    router.push('/dashboard/my')
+    router.push('/dashboard')
   }
 
   const logoutUser = () => {
-    localStorage.clear()
+    localStorage.removeItem('token')
+    // localStorage.removeItem('user') // If you stored user data in localStorage
     setToken(null)
     setUser(null)
     router.push('/signin')

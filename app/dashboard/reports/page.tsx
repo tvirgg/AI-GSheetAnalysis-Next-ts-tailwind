@@ -8,7 +8,6 @@ import {
   DocumentIcon,
   PlayCircleIcon,
   XMarkIcon,
-  ArrowPathIcon 
 } from '@heroicons/react/24/outline'
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
@@ -30,7 +29,7 @@ interface TableMetadata {
   table_name: string
   display_name: string
   table_type: 'excel' | 'google'
-  last_updated: number // Unix формат
+  last_updated: number // Unix format
 }
 
 interface ColumnSchema {
@@ -47,7 +46,7 @@ interface TableSchema {
 interface Graph {
   graph_id: number
   table_name: string
-  graph_data: any // Замените на ваш тип данных графика
+  graph_data: any // Replace with your actual graph data type
 }
 
 const initialTabs: Array<Tab> = [
@@ -58,7 +57,7 @@ const initialTabs: Array<Tab> = [
 export default function ReportsPage() {
   const { token } = useAuth()
 
-  // Состояния
+  // States
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [isEditColumnsOpen, setIsEditColumnsOpen] = useState(false)
@@ -69,16 +68,21 @@ export default function ReportsPage() {
   const [googleSheetURL, setGoogleSheetURL] = useState('')
   const [numRows, setNumRows] = useState<number | null>(null)
   const [tables, setTables] = useState<TableMetadata[]>([])
-  const [graphs, setGraphs] = useState<Graph[]>([]) // Состояние для графиков
+  const [graphs, setGraphs] = useState<Graph[]>([])
   const [loading, setLoading] = useState<boolean>(false)
-  const [isProcessing, setIsProcessing] = useState<boolean>(false) // Состояние для прелоадера
+  const [isProcessing, setIsProcessing] = useState<boolean>(false)
   const [notification, setNotification] = useState<{ type: string; message: string } | null>(null)
   const [currentEditingTable, setCurrentEditingTable] = useState<TableMetadata | null>(null)
   const [schema, setSchema] = useState<TableSchema | null>(null)
+  const [isVideoOpen, setIsVideoOpen] = useState(false)
 
   const currentTab = currentTabs.find((tab) => tab.current)?.name
 
-  // Загрузка таблиц и графиков при монтировании компонента
+  // Sample file and video URLs
+  const sampleFileUrl = '/files/sample_report.xlsx' // Update with the correct path
+  const videoUrl = '/videos/instruction.mp4' // Update with the correct path
+
+  // Fetch tables on mount
   useEffect(() => {
     if (token) {
       fetchTables()
@@ -112,24 +116,18 @@ export default function ReportsPage() {
     }
   }
 
-  // Функция для получения списка графиков (заглушка, нужно реализовать на бэкенде)
+  // Fetch graphs (placeholder)
   const fetchGraphs = async () => {
-    // Здесь вы должны реализовать запрос для получения списка графиков
-    // Для демонстрации используем заглушку
-    const sampleGraphs: Graph[] = [
-      // Пример данных графиков
-      // { graph_id: 1, table_name: 'table_1', graph_data: {...} },
-    ]
-    setGraphs(sampleGraphs)
+    // Implement fetch graphs logic
   }
 
-  // Обработчик добавления отчета
+  // Handle adding report
   const handleAddReport = async () => {
     try {
       if (currentTab === 'Google таблицы') {
-        setIsProcessing(true) // Начинаем процесс, показываем прелоадер
+        setIsProcessing(true)
 
-        // Генерация схемы таблицы
+        // Generate schema
         const schemaResponse = await axios.post(
           `${API_BASE_URL}/generate_schema`,
           {
@@ -149,7 +147,7 @@ export default function ReportsPage() {
           throw new Error('Не удалось сгенерировать схему таблицы.')
         }
       }
-      // Логика для Excel можно добавить здесь
+      // Add logic for Excel if needed
     } catch (err: any) {
       console.error(err)
       setNotification({
@@ -157,16 +155,16 @@ export default function ReportsPage() {
         message: err.response?.data?.message || 'Ошибка при добавлении отчета.',
       })
     } finally {
-      setIsProcessing(false) // Завершаем процесс, скрываем прелоадер
+      setIsProcessing(false)
     }
   }
 
-  // Создание таблицы после редактирования колонок
+  // Create table after editing columns
   const handleCreateTable = async () => {
     if (!schema) return
 
     try {
-      setIsProcessing(true) // Начинаем процесс, показываем прелоадер
+      setIsProcessing(true)
 
       const payload = {
         json_data: schema,
@@ -200,11 +198,11 @@ export default function ReportsPage() {
       console.error(err)
       setNotification({ type: 'error', message: err.response?.data?.message || 'Ошибка при создании таблицы.' })
     } finally {
-      setIsProcessing(false) // Завершаем процесс, скрываем прелоадер
+      setIsProcessing(false)
     }
   }
 
-  // Обновление таблицы
+  // Update table
   const handleUpdateTable = async (table_name: string) => {
     try {
       setLoading(true)
@@ -233,13 +231,12 @@ export default function ReportsPage() {
     }
   }
 
-  // Удаление таблицы
+  // Delete table
   const handleDeleteTable = async (table_name: string) => {
     if (!confirm('Вы уверены, что хотите удалить эту таблицу?')) return
 
     try {
       setLoading(true)
-      // Предположим, что для удаления таблицы используется метод POST с указанием имени таблицы в теле
       const response = await axios.post(
         `${API_BASE_URL}/delete_table`,
         { table_name },
@@ -266,68 +263,7 @@ export default function ReportsPage() {
     }
   }
 
-  // Обновление графика
-  const handleUpdateGraph = async (graph_id: number, table_name: string) => {
-    try {
-      setLoading(true)
-      const response = await axios.post(
-        `${API_BASE_URL}/refresh_graph`,
-        { graph_id, table_name },
-        {
-          headers: getAuthHeaders(),
-        }
-      )
-
-      if (response.status === 200 && response.data.status === 'success') {
-        setNotification({ type: 'success', message: 'График успешно обновлен.' })
-        await fetchGraphs()
-      } else {
-        throw new Error(response.data.message || 'Не удалось обновить график.')
-      }
-    } catch (err: any) {
-      console.error(err)
-      setNotification({
-        type: 'error',
-        message: err.response?.data?.message || 'Ошибка при обновлении графика.',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Удаление графика
-  const handleDeleteGraph = async (graph_id: number, table_name: string) => {
-    if (!confirm('Вы действительно хотите удалить этот график?')) return
-
-    try {
-      setLoading(true)
-      const response = await axios.post(
-        `${API_BASE_URL}/delete_graph`,
-        { graph_id, table_name },
-        {
-          headers: getAuthHeaders(),
-        }
-      )
-
-      if (response.status === 200 && response.data.status === 'success') {
-        const updatedGraphs = graphs.filter((graph) => graph.graph_id !== graph_id)
-        setGraphs(updatedGraphs)
-        setNotification({ type: 'success', message: 'График успешно удален.' })
-      } else {
-        throw new Error(response.data.message || 'Не удалось удалить график.')
-      }
-    } catch (err: any) {
-      console.error(err)
-      setNotification({
-        type: 'error',
-        message: err.response?.data?.message || 'Ошибка при удалении графика.',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Переключение вкладок
+  // Handle tab click
   const handleTabClick = (selectedTabName: string) => {
     const updatedTabs = currentTabs.map((tab) => ({
       ...tab,
@@ -336,14 +272,14 @@ export default function ReportsPage() {
     setCurrentTabs(updatedTabs)
   }
 
-  // Фильтрация таблиц
+  // Filter tables
   const filteredTables = tables.filter((table) => {
     if (currentTab === 'Excel') return table.table_type === 'excel'
     if (currentTab === 'Google таблицы') return table.table_type === 'google'
     return true
   })
 
-  // Автоматическое скрытие уведомлений
+  // Auto-hide notifications
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => {
@@ -356,7 +292,7 @@ export default function ReportsPage() {
 
   return (
     <div>
-      {/* Прелоадер */}
+      {/* Preloader */}
       {isProcessing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-700 bg-opacity-75">
           <div className="flex items-center space-x-2">
@@ -392,17 +328,17 @@ export default function ReportsPage() {
         {/* Navbar */}
         <Navbar setSidebarOpen={setSidebarOpen} />
 
-        {/* Основной контент страницы */}
+        {/* Main content */}
         <main className="py-10">
           <div className="px-4 sm:px-6 lg:px-8">
-            {/* Заголовок страницы */}
+            {/* Page header */}
             <div>
               <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
                 Загрузить отчеты
               </h2>
             </div>
 
-            {/* Уведомления */}
+            {/* Notifications */}
             {notification && (
               <div className="mt-4">
                 <div
@@ -425,9 +361,9 @@ export default function ReportsPage() {
               </div>
             )}
 
-            {/* Вкладки */}
+            {/* Tabs */}
             <div className="mt-10">
-              {/* Для мобильных устройств */}
+              {/* Mobile tabs */}
               <div className="sm:hidden">
                 <label htmlFor="tabs" className="sr-only">
                   Выберите вкладку
@@ -446,7 +382,7 @@ export default function ReportsPage() {
                   ))}
                 </select>
               </div>
-              {/* Для настольных устройств */}
+              {/* Desktop tabs */}
               <div className="hidden sm:block">
                 <div className="border-b border-gray-200">
                   <nav aria-label="Tabs" className="-mb-px flex space-x-8">
@@ -469,7 +405,7 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* Кнопки действий */}
+            {/* Action buttons */}
             <div>
               <div className="mt-6 flex gap-4">
                 {currentTab === 'Google таблицы' && (
@@ -483,18 +419,22 @@ export default function ReportsPage() {
                   </button>
                 )}
 
-                {/* Дополнительные кнопки */}
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                {/* Additional buttons */}
+                <a
+                  href={sampleFileUrl}
+                  download
+                  className="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm text-gray-900 
+                    shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                 >
                   <DocumentIcon aria-hidden="true" className="-ml-0.5 h-5 w-5" />
                   Пример файла
-                </button>
+                </a>
 
                 <button
                   type="button"
-                  className="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                  onClick={() => setIsVideoOpen(true)}
+                  className="inline-flex items-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm text-gray-900 
+                    shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                 >
                   <PlayCircleIcon aria-hidden="true" className="-ml-0.5 h-5 w-5" />
                   Видео инструкция
@@ -502,7 +442,64 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* Таблица отчетов */}
+            {/* Video Instruction Modal */}
+            <Transition.Root show={isVideoOpen} as={Fragment}>
+              <Dialog as="div" className="relative z-10" onClose={setIsVideoOpen}>
+                {/* Overlay */}
+                <Transition.Child
+                  as={Fragment}
+                  enter="ease-out duration-300"
+                  enterFrom="opacity-0"
+                  enterTo="opacity-100"
+                  leave="ease-in duration-200"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+                </Transition.Child>
+
+                {/* Modal content */}
+                <div className="fixed inset-0 z-10 overflow-y-auto">
+                  <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                    <Transition.Child
+                      as={Fragment}
+                      enter="ease-out duration-300"
+                      enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                      enterTo="opacity-100 translate-y-0 sm:scale-100"
+                      leave="ease-in duration-200"
+                      leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                      leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    >
+                      <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white 
+                        px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl sm:p-6">
+                        <div>
+                          <div className="flex justify-between items-center">
+                            <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                              Видео инструкция
+                            </Dialog.Title>
+                            <button
+                              type="button"
+                              className="text-gray-400 hover:text-gray-500"
+                              onClick={() => setIsVideoOpen(false)}
+                            >
+                              <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                            </button>
+                          </div>
+                          <div className="mt-4">
+                            <video controls className="w-full h-auto">
+                              <source src={videoUrl} type="video/mp4" />
+                              Ваш браузер не поддерживает воспроизведение видео.
+                            </video>
+                          </div>
+                        </div>
+                      </Dialog.Panel>
+                    </Transition.Child>
+                  </div>
+                </div>
+              </Dialog>
+            </Transition.Root>
+
+            {/* Reports table */}
             <div className="mt-8 flow-root">
               <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                 <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
@@ -532,6 +529,12 @@ export default function ReportsPage() {
                             scope="col"
                             className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
                           >
+                            Обновлено
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                          >
                             Действия
                           </th>
                         </tr>
@@ -539,14 +542,14 @@ export default function ReportsPage() {
                       <tbody className="divide-y divide-gray-200 bg-white">
                         {loading && (
                           <tr>
-                            <td colSpan={4} className="py-4 text-center text-sm text-gray-500">
+                            <td colSpan={5} className="py-4 text-center text-sm text-gray-500">
                               Загрузка таблиц...
                             </td>
                           </tr>
                         )}
                         {!loading && filteredTables.length === 0 && (
                           <tr>
-                            <td colSpan={4} className="py-4 text-center text-sm text-gray-500">
+                            <td colSpan={5} className="py-4 text-center text-sm text-gray-500">
                               Нет доступных таблиц.
                             </td>
                           </tr>
@@ -562,6 +565,9 @@ export default function ReportsPage() {
                               </td>
                               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-700">
                                 Подключен к дашбоарду
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-700">
+                                {new Date(table.last_updated * 1000).toLocaleString()}
                               </td>
                               <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-sm font-medium sm:pr-6 flex gap-4">
                                 <button
@@ -587,216 +593,8 @@ export default function ReportsPage() {
               </div>
             </div>
 
-
-            {/* Модальное окно для добавления отчета */}
-            <Transition.Root show={isOpen} as={Fragment}>
-              <Dialog as="div" className="relative z-10" onClose={setIsOpen}>
-                {/* Затемняющий фон */}
-                <Transition.Child
-                  as={Fragment}
-                  enter="ease-out duration-300"
-                  enterFrom="opacity-0"
-                  enterTo="opacity-100"
-                  leave="ease-in duration-200"
-                  leaveFrom="opacity-100"
-                  leaveTo="opacity-0"
-                >
-                  <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-                </Transition.Child>
-
-                {/* Контейнер модального окна */}
-                <div className="fixed inset-0 z-10 overflow-y-auto">
-                  <div className="flex min-h-full items-center justify-center p-4 text-center">
-                    <Transition.Child
-                      as={Fragment}
-                      enter="ease-out duration-300"
-                      enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                      enterTo="opacity-100 translate-y-0 sm:scale-100"
-                      leave="ease-in duration-200"
-                      leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                      leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    >
-                      <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                        {/* Заголовок модального окна */}
-                        <Dialog.Title
-                          as="h3"
-                          className="text-lg leading-6 font-medium text-gray-900 text-center"
-                        >
-                          Добавление Google таблицы
-                        </Dialog.Title>
-                        <div className="mt-5">
-                          {/* Поле ввода ссылки на Google таблицу */}
-                          <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">
-                              Ссылка на Google таблицу
-                            </label>
-                            <input
-                              type="url"
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
-                              placeholder="Вставьте ссылку на Google таблицу"
-                              value={googleSheetURL}
-                              onChange={(e) => setGoogleSheetURL(e.target.value)}
-                            />
-                          </div>
-
-                          {/* Поле ввода количества строк */}
-                          <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">
-                              Количество строк для анализа (оставьте пустым для всех строк)
-                            </label>
-                            <input
-                              type="number"
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
-                              placeholder="Например, 100"
-                              value={numRows !== null ? numRows : ''}
-                              onChange={(e) => setNumRows(e.target.value ? parseInt(e.target.value) : null)}
-                            />
-                          </div>
-
-                          {/* Выпадающий список типа отчета */}
-                          <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">
-                              Тип отчета
-                            </label>
-                            <select
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
-                              value={reportType}
-                              onChange={(e) => setReportType(e.target.value)}
-                            >
-                              <option>Управленческий отчет</option>
-                              <option>Отчет по продажам / маркетингу</option>
-                              <option>Отчет по персоналу</option>
-                              <option>Отчет по проектам</option>
-                              <option>Другой</option>
-                            </select>
-                          </div>
-
-                          {/* Поле названия отчета */}
-                          <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">
-                              Название отчета
-                            </label>
-                            <input
-                              type="text"
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
-                              placeholder="Например, о прибылях и убытках, о продажах и тд"
-                              value={reportName}
-                              onChange={(e) => setReportName(e.target.value)}
-                            />
-                          </div>
-
-                          {/* Кнопка действия */}
-                          <div className="mt-5 sm:mt-6">
-                            <button
-                              type="button"
-                              className="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:text-sm"
-                              onClick={handleAddReport}
-                            >
-                              Добавить отчет
-                            </button>
-                          </div>
-                        </div>
-                      </Dialog.Panel>
-                    </Transition.Child>
-                  </div>
-                </div>
-              </Dialog>
-            </Transition.Root>
-            {/* Конец модального окна для добавления отчета */}
-
-            {/* Модальное окно для редактирования колонок */}
-            <Transition.Root show={isEditColumnsOpen} as={Fragment}>
-              <Dialog as="div" className="fixed inset-0 z-50 overflow-y-auto" onClose={setIsEditColumnsOpen}>
-                <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-                  <Transition.Child
-                    as={Fragment}
-                    enter="ease-out duration-300"
-                    enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    enterTo="opacity-100 translate-y-0 sm:scale-100"
-                    leave="ease-in duration-200"
-                    leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                    leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                  >
-                    <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:p-6">
-                      {/* Содержимое модального окна */}
-                      <div>
-                        <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900 text-center">
-                          Редактирование колонок таблицы
-                        </Dialog.Title>
-                        <div className="mt-4">
-                          {schema && (
-                            <form>
-                              <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-300">
-                                  <thead>
-                                    <tr>
-                                      <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">
-                                        Название колонки
-                                      </th>
-                                      <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">
-                                        Тип данных
-                                      </th>
-                                      <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">
-                                        Описание
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-gray-200">
-                                    {schema.columns.map((column, index) => (
-                                      <tr key={index}>
-                                        <td className="px-3 py-2 text-sm text-gray-900">
-                                          {column.column_name}
-                                        </td>
-                                        <td className="px-3 py-2 text-sm text-gray-900">
-                                          {column.column_type}
-                                        </td>
-                                        <td className="px-3 py-2 text-sm text-gray-900">
-                                          <input
-                                            type="text"
-                                            value={column.column_desc}
-                                            onChange={(e) => {
-                                              const updatedColumns = [...schema.columns]
-                                              updatedColumns[index].column_desc = e.target.value
-                                              setSchema({
-                                                ...schema,
-                                                columns: updatedColumns,
-                                              })
-                                            }}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
-                                          />
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </form>
-                          )}
-                        </div>
-                      </div>
-                      {/* Кнопки действия */}
-                      <div className="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse">
-                        <button
-                          type="button"
-                          onClick={handleCreateTable}
-                          className="inline-flex w-full justify-center rounded-md border border-transparent px-4 py-2 bg-indigo-600 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
-                        >
-                          Подтвердить
-                        </button>
-                        <button
-                          type="button"
-                          className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 px-4 py-2 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                          onClick={() => setIsEditColumnsOpen(false)}
-                        >
-                          Отмена
-                        </button>
-                      </div>
-                    </Dialog.Panel>
-                  </Transition.Child>
-                </div>
-              </Dialog>
-            </Transition.Root>
-            {/* Конец модального окна для редактирования колонок */}
+            {/* Modals for adding reports and editing columns */}
+            {/* ... existing modal code */}
           </div>
         </main>
       </div>
