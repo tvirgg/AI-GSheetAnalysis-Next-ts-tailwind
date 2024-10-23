@@ -592,9 +592,215 @@ export default function ReportsPage() {
                 </div>
               </div>
             </div>
+            {/* Модальное окно для добавления отчета */}
+            <Transition.Root show={isOpen} as={Fragment}>
+              <Dialog as="div" className="relative z-10" onClose={setIsOpen}>
+                {/* Затемняющий фон */}
+                <Transition.Child
+                  as={Fragment}
+                  enter="ease-out duration-300"
+                  enterFrom="opacity-0"
+                  enterTo="opacity-100"
+                  leave="ease-in duration-200"
+                  leaveFrom="opacity-100"
+                  leaveTo="opacity-0"
+                >
+                  <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+                </Transition.Child>
 
-            {/* Modals for adding reports and editing columns */}
-            {/* ... existing modal code */}
+                {/* Контейнер модального окна */}
+                <div className="fixed inset-0 z-10 overflow-y-auto">
+                  <div className="flex min-h-full items-center justify-center p-4 text-center">
+                    <Transition.Child
+                      as={Fragment}
+                      enter="ease-out duration-300"
+                      enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                      enterTo="opacity-100 translate-y-0 sm:scale-100"
+                      leave="ease-in duration-200"
+                      leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                      leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    >
+                      <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                        {/* Заголовок модального окна */}
+                        <Dialog.Title
+                          as="h3"
+                          className="text-lg leading-6 font-medium text-gray-900 text-center"
+                        >
+                          Добавление Google таблицы
+                        </Dialog.Title>
+                        <div className="mt-5">
+                          {/* Поле ввода ссылки на Google таблицу */}
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Ссылка на Google таблицу
+                            </label>
+                            <input
+                              type="url"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
+                              placeholder="Вставьте ссылку на Google таблицу"
+                              value={googleSheetURL}
+                              onChange={(e) => setGoogleSheetURL(e.target.value)}
+                            />
+                          </div>
+
+                          {/* Поле ввода количества строк */}
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Количество строк для анализа (оставьте пустым для всех строк)
+                            </label>
+                            <input
+                              type="number"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
+                              placeholder="Например, 100"
+                              value={numRows !== null ? numRows : ''}
+                              onChange={(e) => setNumRows(e.target.value ? parseInt(e.target.value) : null)}
+                            />
+                          </div>
+
+                          {/* Выпадающий список типа отчета */}
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Тип отчета
+                            </label>
+                            <select
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
+                              value={reportType}
+                              onChange={(e) => setReportType(e.target.value)}
+                            >
+                              <option>Управленческий отчет</option>
+                              <option>Отчет по продажам / маркетингу</option>
+                              <option>Отчет по персоналу</option>
+                              <option>Отчет по проектам</option>
+                              <option>Другой</option>
+                            </select>
+                          </div>
+
+                          {/* Поле названия отчета */}
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Название отчета
+                            </label>
+                            <input
+                              type="text"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
+                              placeholder="Например, о прибылях и убытках, о продажах и тд"
+                              value={reportName}
+                              onChange={(e) => setReportName(e.target.value)}
+                            />
+                          </div>
+
+                          {/* Кнопка действия */}
+                          <div className="mt-5 sm:mt-6">
+                            <button
+                              type="button"
+                              className="inline-flex justify-center w-full rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:text-sm"
+                              onClick={handleAddReport}
+                            >
+                              Добавить отчет
+                            </button>
+                          </div>
+                        </div>
+                      </Dialog.Panel>
+                    </Transition.Child>
+                  </div>
+                </div>
+              </Dialog>
+            </Transition.Root>
+            {/* Конец модального окна для добавления отчета */}
+
+            {/* Модальное окно для редактирования колонок */}
+            <Transition.Root show={isEditColumnsOpen} as={Fragment}>
+              <Dialog as="div" className="fixed inset-0 z-50 overflow-y-auto" onClose={setIsEditColumnsOpen}>
+                <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+                  <Transition.Child
+                    as={Fragment}
+                    enter="ease-out duration-300"
+                    enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                    enterTo="opacity-100 translate-y-0 sm:scale-100"
+                    leave="ease-in duration-200"
+                    leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                    leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                  >
+                    <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:p-6">
+                      {/* Содержимое модального окна */}
+                      <div>
+                        <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900 text-center">
+                          Редактирование колонок таблицы
+                        </Dialog.Title>
+                        <div className="mt-4">
+                          {schema && (
+                            <form>
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-300">
+                                  <thead>
+                                    <tr>
+                                      <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">
+                                        Название колонки
+                                      </th>
+                                      <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">
+                                        Тип данных
+                                      </th>
+                                      <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">
+                                        Описание
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-200">
+                                    {schema.columns.map((column, index) => (
+                                      <tr key={index}>
+                                        <td className="px-3 py-2 text-sm text-gray-900">
+                                          {column.column_name}
+                                        </td>
+                                        <td className="px-3 py-2 text-sm text-gray-900">
+                                          {column.column_type}
+                                        </td>
+                                        <td className="px-3 py-2 text-sm text-gray-900">
+                                          <input
+                                            type="text"
+                                            value={column.column_desc}
+                                            onChange={(e) => {
+                                              const updatedColumns = [...schema.columns]
+                                              updatedColumns[index].column_desc = e.target.value
+                                              setSchema({
+                                                ...schema,
+                                                columns: updatedColumns,
+                                              })
+                                            }}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
+                                          />
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </form>
+                          )}
+                        </div>
+                      </div>
+                      {/* Кнопки действия */}
+                      <div className="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse">
+                        <button
+                          type="button"
+                          onClick={handleCreateTable}
+                          className="inline-flex w-full justify-center rounded-md border border-transparent px-4 py-2 bg-indigo-600 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm"
+                        >
+                          Подтвердить
+                        </button>
+                        <button
+                          type="button"
+                          className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 px-4 py-2 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                          onClick={() => setIsEditColumnsOpen(false)}
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                    </Dialog.Panel>
+                  </Transition.Child>
+                </div>
+              </Dialog>
+            </Transition.Root>
+            {/* Конец модального окна для редактирования колонок */}
           </div>
         </main>
       </div>

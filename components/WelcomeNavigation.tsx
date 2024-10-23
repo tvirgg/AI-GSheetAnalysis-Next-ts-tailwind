@@ -14,21 +14,21 @@ const navigation = [
     title: 'Подключите отчеты, которые вы ведете (например, управленческие отчеты, о продажах и тд)',
     subtitle: 'Чтобы отобразить все ключевые показатели на одной странице',
     icon: PlusCircleIcon,
-    href: 'dashboard/reports',
+    href: '/dashboard/reports',
   },
   {
     id: 2,
     title: 'Выберите показатели, которые вы хотите отобразить',
     subtitle: 'Так мы поймем, что показывать вам на дашборде',
     icon: CursorArrowRaysIcon,
-    href: 'dashboard/ai',
+    href: '/dashboard/ai',
   },
   {
     id: 3,
     title: 'Откройте дашборд и наблюдайте за показателями',
     subtitle: 'Чтобы видеть актуальную ситуацию по каждой области бизнеса',
     icon: PresentationChartBarIcon,
-    href: 'dashboard/my',
+    href: '/dashboard/my',
   },
 ]
 
@@ -76,7 +76,7 @@ export default function WelcomeNavigation() {
         ))}
         <li className="relative flex justify-between px-4 py-4 hover:bg-gray-50 sm:px-6 divide-gray-900/5 bg-gray-50">
           <a
-            href=""
+            href="#"
             className="flex items-center justify-center gap-x-2.5 py-3 text-sm font-semibold leading-6 text-blue-500"
           >
             <PlayCircleIcon aria-hidden="true" className="h-5 w-5 flex-none text-blue-500" />
