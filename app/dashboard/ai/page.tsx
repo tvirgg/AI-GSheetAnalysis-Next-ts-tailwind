@@ -10,35 +10,30 @@ import { useAuth } from '@/app/context/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useDashboard } from '@/app/context/DashboardContext'
 
-// Define interfaces
-interface ChartResponse {
-  status: string
-  graph_html: string
-  timestamp: number
-  prompt: string
-  message?: string
+// Define interfaces locally
+interface Graph {
+  id: number;
+  timestamp: number;
+  prompt: string;
+  graph_html: string; // base64
+  is_up_to_date: boolean;
 }
 
-interface TableItem {
-  display_name: string
-  last_updated: number
-  table_name: string
-  table_type: string
+interface ChartResponse {
+  status: string;
+  graph_html: string;
+  timestamp: number;
+  prompt: string;
+  message?: string;
 }
 
 interface DashboardResponse {
-  table_name: string
-  display_name: string
-  data: Array<{ [key: string]: any }>
-  columns: string[]
-  descriptions: { [key: string]: string }
-  graphs: Array<{
-    id: number
-    timestamp: number
-    prompt: string
-    graph_html: string
-    is_up_to_date: boolean
-  }>
+  table_name: string;
+  display_name: string;
+  data: Array<{ [key: string]: any }>;
+  columns: string[];
+  descriptions: { [key: string]: string };
+  graphs: Graph[];
 }
 
 export default function AiPage() {
@@ -525,7 +520,7 @@ export default function AiPage() {
                           <h4 className="text-lg font-semibold mb-2">Графики:</h4>
                           <div className="space-y-4">
                             {tableData.graphs.length > 0 ? (
-                              tableData.graphs.map((graph: any) => (
+                              tableData.graphs.map((graph: Graph) => (
                                 <div key={graph.id} className="bg-gray-100 p-4 rounded-lg">
                                   <p className="text-sm text-gray-700 mb-2"><strong>Описание:</strong> {graph.prompt}</p>
                                   <iframe
