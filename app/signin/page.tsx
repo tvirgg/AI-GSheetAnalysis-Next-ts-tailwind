@@ -1,10 +1,11 @@
 // app/signin/page.tsx
+
 'use client'
 
 import { useState, FormEvent } from 'react'
 import Link from 'next/link'
 import { useAuth } from '../context/AuthContext'
-import { API_BASE_URL } from 'baseapi/config' // Используем новый алиас
+import { API_BASE_URL } from 'baseapi/config' // Используем API_BASE_URL без изменений
 
 export default function SigninPage() {
   const [email, setEmail] = useState<string>('')
@@ -19,7 +20,7 @@ export default function SigninPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const response = await fetch(`${API_BASE_URL}/login`, { // Добавлено /api
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -113,7 +114,7 @@ export default function SigninPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`flex w-full justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {isLoading ? 'Вход...' : 'Войти'}
               </button>

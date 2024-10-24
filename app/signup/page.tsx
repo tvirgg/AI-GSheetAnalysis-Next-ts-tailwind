@@ -9,7 +9,8 @@ import { API_BASE_URL } from 'baseapi/config' // Используем новый
 export default function SignupPage() {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('') // Добавляем поле для пароля
+  const [password, setPassword] = useState('')
+  const [companyName, setCompanyName] = useState('') // Добавлено состояние для company_name
   const [message, setMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -23,7 +24,7 @@ export default function SignupPage() {
       const response = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, username, password }) // Передаем пароль
+        body: JSON.stringify({ email, username, password, company_name: companyName }) // Включено company_name
       })
 
       const data = await response.json()
@@ -98,6 +99,21 @@ export default function SignupPage() {
                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 sm:text-sm"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            {/* Новое поле для названия компании */}
+            <div>
+              <label htmlFor="company_name" className="sr-only">Название компании</label>
+              <input
+                id="company_name"
+                name="company_name"
+                type="text"
+                placeholder="Название компании"
+                required
+                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 sm:text-sm"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
               />
             </div>
 

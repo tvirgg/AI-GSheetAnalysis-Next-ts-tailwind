@@ -7,6 +7,7 @@ import {
   ArrowDownTrayIcon,
   ArrowsPointingOutIcon, // Иконка для развертывания
   PlusIcon,
+  XMarkIcon,             // Иконка для закрытия
 } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, useState } from 'react';
@@ -57,7 +58,7 @@ const GraphRow: React.FC<GraphRowProps> = ({
   const handleExpand = (graph: Graph) => {
     try {
       const decodedHtml = atob(graph.graph_html);
-      setModalContent(decodedHtml);
+      setModalContent(decodedHtml); // Устанавливаем декодированный HTML
       setIsModalOpen(true);
     } catch (error) {
       console.error('Ошибка при развертывании графика:', error);
@@ -69,7 +70,7 @@ const GraphRow: React.FC<GraphRowProps> = ({
     <div className="relative mt-6 w-full">
       {/* Горизонтальная прокрутка с применением стилей скроллбара */}
       <div className="flex overflow-x-auto space-x-4 w-full scrollable-container">
-        {graphs.map((graph) => (
+        {graphs.slice().reverse().map((graph) => (
           <div
             key={graph.id}
             className="flex-shrink-0 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg"
@@ -145,49 +146,50 @@ const GraphRow: React.FC<GraphRowProps> = ({
         <Dialog as="div" className="relative z-50" onClose={setIsModalOpen}>
           <Transition.Child
             as={Fragment}
-            enter="ease-out duration-300 transform"
-            enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            enterTo="opacity-100 translate-y-0 sm:scale-100"
-            leave="ease-in duration-200 transform"
-            leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-            leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
           >
-            <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-5xl sm:p-6">
-              <div className="absolute top-0 right-0 pr-4 pt-4">
-                <button
-                  type="button"
-                  className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  <span className="sr-only">Закрыть</span>
-                  {/* Оригинальный SVG для кнопки закрытия */}
-                  <svg
-                    className="h-6 w-6"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <div className="mt-5 sm:mt-6">
-                <iframe
-                  srcDoc={modalContent}
-                  className="w-full h-[80vh] border-0 rounded-lg"
-                  title="Развернутый график"
-                  sandbox="allow-scripts allow-same-origin"
-                />
-              </div>
-            </Dialog.Panel>
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
           </Transition.Child>
+
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-5xl sm:p-6">
+                  <div className="absolute top-0 right-0 hidden pr-4 pt-4 sm:block">
+                    <button
+                      type="button"
+                      className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
+                      onClick={() => setIsModalOpen(false)}
+                    >
+                      <span className="sr-only">Закрыть</span>
+                      <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <div className="mt-5 sm:mt-6">
+                    <iframe
+                      srcDoc={modalContent}
+                      className="w-full h-[80vh] border-0 rounded-lg"
+                      title="Развернутый график"
+                      sandbox="allow-scripts allow-same-origin"
+                    />
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
         </Dialog>
       </Transition.Root>
     </div>

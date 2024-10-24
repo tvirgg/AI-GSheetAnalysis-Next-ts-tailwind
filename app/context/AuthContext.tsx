@@ -1,7 +1,13 @@
 // app/context/AuthContext.tsx
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react'
 import { useRouter } from 'next/navigation'
 import { API_BASE_URL } from 'baseapi/config'
 
@@ -10,6 +16,7 @@ interface User {
   email: string
   username: string
   auth_type: string
+  company_name: string // Добавлено поле company_name
 }
 
 interface AuthContextType {
@@ -46,8 +53,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!response.ok) throw new Error('Failed to fetch user data')
       const data = await response.json()
       setUser(data.user_data)
-      // Optionally, you can store user data in localStorage
-      // localStorage.setItem('user', JSON.stringify(data.user_data))
     } catch (error) {
       console.error('Failed to fetch user data:', error)
       logoutUser()
@@ -65,14 +70,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logoutUser = () => {
     localStorage.removeItem('token')
-    // localStorage.removeItem('user') // If you stored user data in localStorage
     setToken(null)
     setUser(null)
     router.push('/signin')
   }
 
   return (
-    <AuthContext.Provider value={{ token, user, loading, login: loginUser, logout: logoutUser }}>
+    <AuthContext.Provider
+      value={{ token, user, loading, login: loginUser, logout: logoutUser }}
+    >
       {!loading && children}
     </AuthContext.Provider>
   )
@@ -80,6 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext)
-  if (context === undefined) throw new Error('useAuth must be used within an AuthProvider')
+  if (context === undefined)
+    throw new Error('useAuth must be used within an AuthProvider')
   return context
 }

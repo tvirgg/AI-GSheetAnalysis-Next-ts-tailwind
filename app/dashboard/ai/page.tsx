@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef, Fragment } from 'react'
+import { useState, useEffect, useRef, Fragment, KeyboardEvent } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon } from '@heroicons/react/24/outline' // Импорт иконки закрытия
+import { XMarkIcon } from '@heroicons/react/24/outline'
 import Sidebar from '@/components/Sidebar'
 import Navbar from '@/components/Navbar'
 import { API_BASE_URL } from 'baseapi/config'
 import { useAuth } from '@/app/context/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useDashboard } from '@/app/context/DashboardContext'
 
 // Define interfaces
 interface ChartResponse {
@@ -43,15 +44,9 @@ interface DashboardResponse {
 export default function AiPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [prompt, setPrompt] = useState('')
-  const [tableName, setTableName] = useState<string>('') // State for selected table
+  const [tableName, setTableName] = useState<string>('') // Selected table
   const [loading, setLoading] = useState(false)
-  const [graphs, setGraphs] = useState<ChartResponse[]>([])
   const [error, setError] = useState<string | null>(null)
-
-  // States for tables
-  const [tables, setTables] = useState<TableItem[]>([])
-  const [tablesLoading, setTablesLoading] = useState<boolean>(false)
-  const [tablesError, setTablesError] = useState<string | null>(null)
 
   // States for table modal
   const [tableData, setTableData] = useState<DashboardResponse | null>(null)
@@ -64,7 +59,9 @@ export default function AiPage() {
 
   const { token: contextToken } = useAuth()
   const router = useRouter()
-  const searchParams = useSearchParams() // Get query parameters
+  const searchParams = useSearchParams()
+
+  const { dashboardData, addGraph, deleteGraph, isLoading: dashboardLoading } = useDashboard()
 
   // Get token from localStorage
   const getTokenFromLocalStorage = (): string | null => {
@@ -86,59 +83,33 @@ export default function AiPage() {
   // Get table_name from query parameters
   const tableNameParam = searchParams.get('table_name')
 
-  // Fetch tables on component mount
+  // Set selected table based on query parameter
   useEffect(() => {
-    const fetchTables = async () => {
-      setTablesLoading(true)
-      setTablesError(null)
+    if (!token) return
 
-      try {
-        const response = await fetch(`${API_BASE_URL}/tables`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        })
+    if (dashboardData.length > 0) {
+      if (tableNameParam) {
+        const foundTable = dashboardData.find((table) => table.table_name === tableNameParam)
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(
-            `Ошибка при получении таблиц: ${response.status} ${response.statusText}. ${errorText}`
-          )
+        if (!foundTable) {
+          setError('Указанный источник данных не найден.')
+        } else {
+          setTableName(foundTable.table_name)
+          setGeneratedGraphs([]) // Clear any existing generated graphs
         }
-
-        const data: { tables: TableItem[] } = await response.json()
-        setTables(data.tables)
-
-        // If table_name parameter is provided, set it
-        if (tableNameParam) {
-          const foundTable = data.tables.find((table) => table.table_name === tableNameParam)
-
-          if (!foundTable) {
-            setError('Указанный источник данных не найден.')
-          } else {
-            setTableName(foundTable.table_name)
-          }
-        }
-      } catch (err: any) {
-        setTablesError(err.message || 'Произошла ошибка при получении таблиц.')
-      } finally {
-        setTablesLoading(false)
       }
     }
+  }, [dashboardData, token, tableNameParam])
 
-    if (token) {
-      fetchTables()
-    }
-  }, [token, tableNameParam])
+  // Manage generated graphs separately
+  const [generatedGraphs, setGeneratedGraphs] = useState<Graph[]>([])
 
-  // Scroll to the last graph when a new graph is added
+  // Scroll to the last generated graph when a new graph is added
   useEffect(() => {
     if (lastGraphRef.current) {
       lastGraphRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [graphs])
+  }, [generatedGraphs])
 
   // Handle form submission
   const handleSubmit = async () => {
@@ -171,7 +142,21 @@ export default function AiPage() {
       const data: ChartResponse = await response.json()
 
       if (data.status === 'success') {
-        setGraphs((prevGraphs) => [...prevGraphs, data])
+        // Create a new Graph object
+        const newGraph = {
+          id: Date.now(), // Ideally, use a unique ID generator like UUID
+          timestamp: data.timestamp,
+          prompt: data.prompt,
+          graph_html: data.graph_html,
+          is_up_to_date: true,
+        }
+
+        // Add the new graph to the context
+        addGraph(tableName, newGraph)
+
+        // Add the new graph to the local generatedGraphs state
+        setGeneratedGraphs((prev) => [...prev, newGraph])
+
         setPrompt('')
         setError(null)
       } else {
@@ -182,6 +167,14 @@ export default function AiPage() {
       setError(err.message || 'Произошла ошибка.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Allow submitting the form by pressing Enter key
+  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleSubmit()
     }
   }
 
@@ -213,7 +206,7 @@ export default function AiPage() {
       const data: DashboardResponse = await response.json()
 
       setTableData(data)
-      setIsModalOpen(true) // Открыть модальное окно
+      setIsModalOpen(true) // Open the modal
     } catch (err: any) {
       setTableError(err.message || 'Произошла ошибка при получении данных таблицы.')
     } finally {
@@ -235,57 +228,17 @@ export default function AiPage() {
             {/* Graphs and Tables */}
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 mb-24 bg-gray-50">
               <div className="max-w-4xl mx-auto space-y-6">
-                {/* Display graphs */}
-                {graphs.length > 0 ? (
+                {/* Display generated graphs or suggested questions */}
+                {generatedGraphs.length > 0 ? (
                   <div className="flex flex-col space-y-6">
-                    {graphs.map((graph, index) => (
+                    {generatedGraphs.map((graph, index) => (
                       <div
-                        key={index}
-                        ref={index === graphs.length - 1 ? lastGraphRef : null}
+                        key={graph.id}
+                        ref={index === generatedGraphs.length - 1 ? lastGraphRef : null}
                       >
                         <div className="bg-white p-4 rounded-lg shadow relative">
                           {/* Control buttons */}
                           <div className="absolute top-2 right-2 flex space-x-2">
-                            {/* Refresh graph */}
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const response = await fetch(`${API_BASE_URL}/refresh_graph`, {
-                                    method: 'POST',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                      'Authorization': `Bearer ${token}`,
-                                    },
-                                    body: JSON.stringify({
-                                      graph_id: index,
-                                      table_name: tableName,
-                                    }),
-                                  })
-
-                                  const data: ChartResponse = await response.json()
-
-                                  if (data.status === 'success') {
-                                    // Update the graph
-                                    setGraphs((prevGraphs) => {
-                                      const updatedGraphs = [...prevGraphs]
-                                      updatedGraphs[index] = data
-                                      return updatedGraphs
-                                    })
-                                  } else {
-                                    setError(data.message || 'Не удалось обновить график.')
-                                  }
-                                } catch (err: any) {
-                                  setError(err.message || 'Произошла ошибка при обновлении графика.')
-                                }
-                              }}
-                              className="text-blue-500 hover:text-blue-700"
-                              aria-label="Обновить график"
-                            >
-                              {/* Refresh icon */}
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582M20.418 19H20v-5h-.582M12 12v8m0-8l4-4m-4 4l-4-4" />
-                              </svg>
-                            </button>
                             {/* Delete graph */}
                             <button
                               onClick={async () => {
@@ -293,26 +246,9 @@ export default function AiPage() {
                                 if (!confirmDelete) return
 
                                 try {
-                                  const response = await fetch(`${API_BASE_URL}/delete_graph`, {
-                                    method: 'POST',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                      'Authorization': `Bearer ${token}`,
-                                    },
-                                    body: JSON.stringify({
-                                      graph_id: index,
-                                      table_name: tableName,
-                                    }),
-                                  })
-
-                                  const data = await response.json()
-
-                                  if (data.status === 'success') {
-                                    // Remove the graph
-                                    setGraphs((prevGraphs) => prevGraphs.filter((_, i) => i !== index))
-                                  } else {
-                                    setError(data.message || 'Не удалось удалить график.')
-                                  }
+                                  await deleteGraph(graph.id, tableName)
+                                  // Remove the graph from generatedGraphs
+                                  setGeneratedGraphs((prev) => prev.filter(g => g.id !== graph.id))
                                 } catch (err: any) {
                                   setError(err.message || 'Произошла ошибка при удалении графика.')
                                 }
@@ -338,7 +274,7 @@ export default function AiPage() {
                               border: 'none',
                               overflow: 'hidden',
                             }}
-                            title={`Graph-${index}`}
+                            title={`Graph-${graph.id}`}
                             sandbox="allow-scripts allow-same-origin"
                           />
                           <p className="text-xs text-gray-500 mt-2">
@@ -414,15 +350,16 @@ export default function AiPage() {
                         placeholder="Введите запрос"
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
+                        onKeyPress={handleKeyPress}
                         className={`flex-1 border p-2 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          loading || tablesLoading ? 'opacity-50 cursor-not-allowed' : ''
+                          loading || dashboardLoading ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
-                        disabled={loading || tablesLoading}
+                        disabled={loading || dashboardLoading}
                       />
                       <button
                         onClick={handleSubmit}
                         className="bg-blue-500 text-white px-4 py-2 rounded-lg disabled:bg-blue-300"
-                        disabled={loading || tablesLoading}
+                        disabled={loading || dashboardLoading}
                       >
                         {loading ? 'Загрузка...' : 'Узнать'}
                       </button>
@@ -439,14 +376,15 @@ export default function AiPage() {
                           value={tableName}
                           onChange={(e) => {
                             setTableName(e.target.value)
+                            setGeneratedGraphs([]) // Clear generated graphs when table changes
                           }}
                           className={`flex-1 border p-1 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 h-8 text-sm ${
-                            loading || tablesLoading ? 'opacity-50 cursor-not-allowed' : ''
+                            loading || dashboardLoading ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
-                          disabled={loading || tablesLoading}
+                          disabled={loading || dashboardLoading}
                         >
                           <option value="">Выберите источник</option>
-                          {tables.map((table) => (
+                          {dashboardData.map((table) => (
                             <option key={table.table_name} value={table.table_name}>
                               {table.display_name}
                             </option>
@@ -569,7 +507,7 @@ export default function AiPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {tableData.data.map((row: any, index: number) => (
+                              {tableData.data.slice(0, 10).map((row: any, index: number) => (
                                 <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
                                   {tableData.columns.map((col: string) => (
                                     <td key={col} className="py-2 px-4 border-b">

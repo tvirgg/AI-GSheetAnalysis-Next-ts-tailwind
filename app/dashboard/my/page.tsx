@@ -37,7 +37,7 @@ export default function MyDashboard() {
     dashboardData,
     isLoading,
     fetchDashboardData,
-    updateTableName,
+    updateTableName, // Убедитесь, что эта функция доступна
     deleteGraph,
     refreshGraph,
   } = useDashboard();
@@ -90,6 +90,11 @@ export default function MyDashboard() {
   }, [notification]);
 
   const handleSaveTableName = async (tableName: string) => {
+    if (!newTableName.trim()) {
+      setNotification({ type: 'error', message: 'Новое название таблицы не должно быть пустым.' });
+      return;
+    }
+
     try {
       await updateTableName(tableName, newTableName);
       setNotification({ type: 'success', message: 'Название таблицы обновлено.' });
@@ -191,8 +196,8 @@ export default function MyDashboard() {
                             <button
                               type="button"
                               onClick={() => {
-                                setEditingTableNameId(section.table_name);
-                                setNewTableName(section.display_name);
+                                setEditingTableNameId(section.table_name)
+                                setNewTableName(section.display_name) // Инициализация с текущим названием
                               }}
                               className="ml-2 inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-500 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                             >
@@ -228,5 +233,5 @@ export default function MyDashboard() {
         </main>
       </div>
     </div>
-  );
+  )
 }
