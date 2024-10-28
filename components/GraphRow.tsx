@@ -5,12 +5,13 @@ import {
   TrashIcon,
   ArrowPathIcon,
   ArrowDownTrayIcon,
-  ArrowsPointingOutIcon, // Иконка для развертывания
+  ArrowsPointingOutIcon,
   PlusIcon,
-  XMarkIcon,             // Иконка для закрытия
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, useState } from 'react';
+import LazyIframe from './LazyIframe'; // Импортируем наш новый компонент
 import "../app/globals.css"; // Импорт стилей
 
 interface Graph {
@@ -115,12 +116,11 @@ const GraphRow: React.FC<GraphRowProps> = ({
                 </button>
               </div>
 
-              {/* Отображение графика через iframe */}
-              <iframe
+              {/* Отображение графика через LazyIframe */}
+              <LazyIframe
                 srcDoc={atob(graph.graph_html)}
-                className="w-full h-full border-0 rounded-lg"
                 title={graph.prompt}
-                sandbox="allow-scripts allow-same-origin"
+                className="w-full h-full border-0 rounded-lg"
               />
             </div>
           </div>

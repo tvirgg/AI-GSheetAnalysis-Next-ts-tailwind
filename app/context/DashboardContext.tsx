@@ -24,10 +24,25 @@ interface Graph {
 interface DashboardData {
   display_name: string
   table_name: string
+  table_type: 'excel' | 'google'
+  last_updated: number
   data: Array<Record<string, any>>
   columns: Array<string>
   descriptions: Record<string, string>
   graphs: Array<Graph>
+}
+
+interface TableMetadata {
+  table_name: string
+  display_name: string
+  table_type: 'excel' | 'google'
+  last_updated: number // Unix format
+}
+
+interface Graph {
+  graph_id: number
+  table_name: string
+  graph_data: any // Replace with your actual graph data type
 }
 
 interface DashboardContextType {
@@ -38,7 +53,9 @@ interface DashboardContextType {
   addGraph: (tableName: string, newGraph: Graph) => void
   deleteGraph: (graphId: number, tableName: string) => Promise<void>
   refreshGraph: (graphId: number, tableName: string) => Promise<void>
-  updateTableName: (tableName: string, newDisplayName: string) => Promise<void> // Добавлено
+  updateTableName: (tableName: string, newDisplayName: string) => Promise<void>
+  addTable: (newTable: TableMetadata) => void
+  deleteTable: (tableName: string) => Promise<void>
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(
@@ -74,7 +91,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const fetchDashboardData = async () => {
     setIsLoading(true)
     try {
-      const response = await axios.get(`${API_BASE_URL}/all_dashboards`, { // Добавлены обратные кавычки
+      const response = await axios.get(`${API_BASE_URL}/all_dashboards`, {
         headers: getAuthHeaders(),
       })
       const data: DashboardData[] = response.data.tables || response.data
@@ -103,7 +120,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const deleteGraph = async (graphId: number, tableName: string) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/delete_graph`, // Добавлены обратные кавычки
+        `${API_BASE_URL}/delete_graph`,
         { graph_id: graphId, table_name: tableName },
         { headers: getAuthHeaders() }
       )
@@ -135,7 +152,7 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const refreshGraph = async (graphId: number, tableName: string) => {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/refresh_graph`, // Добавлены обратные кавычки
+        `${API_BASE_URL}/refresh_graph`,
         { graph_id: graphId, table_name: tableName },
         { headers: getAuthHeaders() }
       )
@@ -150,11 +167,10 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  // Добавляем функцию updateTableName
   const updateTableName = async (tableName: string, newDisplayName: string) => {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/edit_table_name`, // Добавлены обратные кавычки
+        `${API_BASE_URL}/edit_table_name`,
         {
           table_name: tableName,
           new_display_name: newDisplayName,
@@ -189,6 +205,52 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  // Новые функции для управления таблицами
+
+  const addTable = (newTable: TableMetadata) => {
+    setDashboardData((prevData) => {
+      const updatedData = [
+        ...prevData,
+        {
+          display_name: newTable.display_name,
+          table_name: newTable.table_name,
+          table_type: newTable.table_type,
+          last_updated: newTable.last_updated,
+          data: [], // Инициализируйте при необходимости
+          columns: [], // Инициализируйте при необходимости
+          descriptions: {}, // Инициализируйте при необходимости
+          graphs: [],
+        },
+      ]
+      localStorage.setItem('dashboardData', JSON.stringify(updatedData))
+      return updatedData
+    })
+  }
+
+  const deleteTable = async (tableName: string) => {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/delete_table`,
+        { table_name: tableName },
+        { headers: getAuthHeaders() }
+      )
+      if (response.status === 200 && response.data.status === 'success') {
+        setDashboardData((prevData) => {
+          const updatedData = prevData.filter(
+            (table) => table.table_name !== tableName
+          )
+          localStorage.setItem('dashboardData', JSON.stringify(updatedData))
+          return updatedData
+        })
+      } else {
+        throw new Error(response.data.message || 'Failed to delete table.')
+      }
+    } catch (err: any) {
+      console.error('Error deleting table:', err)
+      throw err
+    }
+  }
+
   return (
     <DashboardContext.Provider
       value={{
@@ -199,7 +261,9 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         addGraph,
         deleteGraph,
         refreshGraph,
-        updateTableName, // Добавлено
+        updateTableName,
+        addTable,
+        deleteTable,
       }}
     >
       {children}

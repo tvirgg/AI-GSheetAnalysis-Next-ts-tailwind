@@ -51,7 +51,7 @@ interface Graph {
 
 const initialTabs: Array<Tab> = [
   { name: 'Google таблицы', href: '#', current: true },
-  { name: 'Excel', href: '#', current: false },
+  // { name: 'Excel', href: '#', current: false },
 ]
 
 export default function ReportsPage() {
@@ -294,7 +294,7 @@ export default function ReportsPage() {
     <div>
       {/* Preloader */}
       {isProcessing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-700 bg-opacity-75">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-700 bg-opacity-75">
           <div className="flex items-center space-x-2">
             <svg
               className="w-6 h-6 animate-spin text-white"
@@ -444,7 +444,7 @@ export default function ReportsPage() {
 
             {/* Video Instruction Modal */}
             <Transition.Root show={isVideoOpen} as={Fragment}>
-              <Dialog as="div" className="relative z-10" onClose={setIsVideoOpen}>
+              <Dialog as="div" className="relative z-[100]" onClose={setIsVideoOpen}>
                 {/* Overlay */}
                 <Transition.Child
                   as={Fragment}
@@ -459,7 +459,7 @@ export default function ReportsPage() {
                 </Transition.Child>
 
                 {/* Modal content */}
-                <div className="fixed inset-0 z-10 overflow-y-auto">
+                <div className="fixed inset-0 z-[100] overflow-y-auto">
                   <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                     <Transition.Child
                       as={Fragment}
@@ -594,7 +594,7 @@ export default function ReportsPage() {
             </div>
             {/* Модальное окно для добавления отчета */}
             <Transition.Root show={isOpen} as={Fragment}>
-              <Dialog as="div" className="relative z-10" onClose={setIsOpen}>
+              <Dialog as="div" className="relative z-[100]" onClose={setIsOpen}>
                 {/* Затемняющий фон */}
                 <Transition.Child
                   as={Fragment}
@@ -609,7 +609,7 @@ export default function ReportsPage() {
                 </Transition.Child>
 
                 {/* Контейнер модального окна */}
-                <div className="fixed inset-0 z-10 overflow-y-auto">
+                <div className="fixed inset-0 z-[100] overflow-y-auto">
                   <div className="flex min-h-full items-center justify-center p-4 text-center">
                     <Transition.Child
                       as={Fragment}
@@ -620,7 +620,8 @@ export default function ReportsPage() {
                       leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                       leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                     >
-                      <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                      <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white 
+                        px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
                         {/* Заголовок модального окна */}
                         <Dialog.Title
                           as="h3"
@@ -710,7 +711,7 @@ export default function ReportsPage() {
 
             {/* Модальное окно для редактирования колонок */}
             <Transition.Root show={isEditColumnsOpen} as={Fragment}>
-              <Dialog as="div" className="fixed inset-0 z-50 overflow-y-auto" onClose={setIsEditColumnsOpen}>
+              <Dialog as="div" className="fixed inset-0 z-[100] overflow-y-auto" onClose={setIsEditColumnsOpen}>
                 <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
                   <Transition.Child
                     as={Fragment}
@@ -721,7 +722,8 @@ export default function ReportsPage() {
                     leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                     leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                   >
-                    <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:p-6">
+                    <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white 
+                      px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl sm:p-6">
                       {/* Содержимое модального окна */}
                       <div>
                         <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900 text-center">

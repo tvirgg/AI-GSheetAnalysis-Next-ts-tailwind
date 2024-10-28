@@ -34,7 +34,7 @@ export default function Sidebar({
   const { token, logout, user } = useAuth()
   const router = useRouter()
   const userName = user?.username || 'Пользователь'
-
+  const companyName = user?.company_name || 'Компания'
   useEffect(() => {
     if (!token) {
       router.push('/signin')
@@ -99,7 +99,7 @@ export default function Sidebar({
                   <div className="flex text-gray-200 mt-6">
                     <Squares2X2Icon aria-hidden="true" className="h-10 w-10" />
                     <div className="flex-1 ml-2">
-                      <div className="font-bold text-sm">Company name</div>
+                      <div className="font-bold text-sm">{companyName}</div>
                       <div className="text-sm">{userName}</div>
                     </div>
                   </div>
@@ -107,13 +107,13 @@ export default function Sidebar({
                   <nav className="flex flex-1 flex-col">
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
                       <li>
-                        <ul role="list" className="-mx-2 space-y-1">
+                        <ul role="list" className="space-y-1">
                           <li>
                             <Link
                               href="/dashboard"
                               className={classNames(
                                 'bg-gray-200 text-gray-900',
-                                'group flex gap-x-3 rounded-md p-2 text-sm leading-6'
+                                'group flex gap-x-3 rounded-md p-2 text-sm leading-6 w-full'
                               )}
                             >
                               <AcademicCapIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
@@ -127,14 +127,14 @@ export default function Sidebar({
                       </li>
 
                       <li>
-                        <ul role="list" className="-mx-2 space-y-1">
+                        <ul role="list" className="space-y-1">
                           {navigation.map((item) => (
                             <li key={item.name}>
                               <Link
                                 href={item.href}
                                 className={classNames(
                                   'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                  'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
+                                  'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 w-full'
                                 )}
                               >
                                 <item.icon aria-hidden="true" className="h-6 w-6 shrink-0" />
@@ -148,14 +148,14 @@ export default function Sidebar({
                       <li className="mt-auto">
                         <a
                           href="#"
-                          className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                          className="group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white w-full"
                         >
                           <CreditCardIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                           Оформить подписку
                         </a>
                         <button
                           type="button"
-                          className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                          className="group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white w-full"
                           onClick={() => logout()}
                         >
                           <ArrowLeftOnRectangleIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
@@ -177,7 +177,7 @@ export default function Sidebar({
           <div className="flex text-gray-200 mt-6">
             <Squares2X2Icon aria-hidden="true" className="h-10 w-10" />
             <div className="flex-1 ml-2">
-              <div className="font-bold text-sm">Company name</div>
+              <div className="font-bold text-sm">{companyName}</div>
               <div className="text-sm">{userName}</div>
             </div>
           </div>
@@ -185,13 +185,13 @@ export default function Sidebar({
           <nav className="mt-6 flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
-                <ul role="list" className="-mx-2 space-y-1">
+                <ul role="list" className="space-y-1">
                   <li>
                     <Link
                       href="/dashboard"
                       className={classNames(
                         'bg-gray-200 text-gray-900',
-                        'group flex gap-x-3 rounded-md p-2 text-sm leading-6'
+                        'group flex gap-x-3 rounded-md p-2 text-sm leading-6 w-full'
                       )}
                     >
                       <AcademicCapIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
@@ -205,14 +205,14 @@ export default function Sidebar({
               </li>
 
               <li>
-                <ul role="list" className="-mx-2 space-y-1">
+                <ul role="list" className="space-y-1">
                   {navigation.map((item) => (
                     <li key={item.name}>
                       <Link
                         href={item.href}
                         className={classNames(
                           'text-gray-400 hover:bg-gray-800 hover:text-white',
-                          'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6'
+                          'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 w-full'
                         )}
                       >
                         <item.icon aria-hidden="true" className="h-6 w-6 shrink-0" />
@@ -226,14 +226,14 @@ export default function Sidebar({
               <li className="mt-auto">
                 <a
                   href="#"
-                  className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                  className="group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white w-full"
                 >
                   <CreditCardIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                   Оформить подписку
                 </a>
                 <button
                   type="button"
-                  className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                  className="group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white w-full"
                   onClick={() => logout()}
                 >
                   <ArrowLeftOnRectangleIcon aria-hidden="true" className="h-6 w-6 shrink-0" />

@@ -10,30 +10,33 @@ import { useAuth } from '@/app/context/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useDashboard } from '@/app/context/DashboardContext'
 
-// Define interfaces locally
+// Обновлённый интерфейс Graph с graph_id типа number
 interface Graph {
-  id: number;
-  timestamp: number;
-  prompt: string;
-  graph_html: string; // base64
-  is_up_to_date: boolean;
+  id: number
+  graph_id: number // Изменено на тип number
+  table_name: string
+  graph_data: any // Можно уточнить тип при необходимости
+  timestamp: number
+  prompt: string
+  graph_html: string // base64
+  is_up_to_date: boolean
 }
 
 interface ChartResponse {
-  status: string;
-  graph_html: string;
-  timestamp: number;
-  prompt: string;
-  message?: string;
+  status: string
+  graph_html: string
+  timestamp: number
+  prompt: string
+  message?: string
 }
 
 interface DashboardResponse {
-  table_name: string;
-  display_name: string;
-  data: Array<{ [key: string]: any }>;
-  columns: string[];
-  descriptions: { [key: string]: string };
-  graphs: Graph[];
+  table_name: string
+  display_name: string
+  data: Array<{ [key: string]: any }>
+  columns: string[]
+  descriptions: { [key: string]: string }
+  graphs: Graph[]
 }
 
 export default function AiPage() {
@@ -137,25 +140,28 @@ export default function AiPage() {
       const data: ChartResponse = await response.json()
 
       if (data.status === 'success') {
-        // Create a new Graph object
-        const newGraph = {
-          id: Date.now(), // Ideally, use a unique ID generator like UUID
+        // Создание нового графика с учётом обновлённого интерфейса
+        const newGraph: Graph = {
+          id: Date.now(), // Идентификатор графика
+          graph_id: Date.now(), // Генерация уникального graph_id как number
+          table_name: tableName, // Название таблицы
+          graph_data: data.graph_html, // Используем graph_html как graph_data (можно изменить при необходимости)
           timestamp: data.timestamp,
           prompt: data.prompt,
           graph_html: data.graph_html,
           is_up_to_date: true,
         }
 
-        // Add the new graph to the context
+        // Добавление нового графика в контекст
         addGraph(tableName, newGraph)
 
-        // Add the new graph to the local generatedGraphs state
+        // Добавление нового графика в локальное состояние
         setGeneratedGraphs((prev) => [...prev, newGraph])
 
         setPrompt('')
         setError(null)
       } else {
-        // Display error message from API
+        // Отображение сообщения об ошибке от API
         setError(data.message || 'Не удалось создать график.')
       }
     } catch (err: any) {
@@ -241,9 +247,9 @@ export default function AiPage() {
                                 if (!confirmDelete) return
 
                                 try {
-                                  await deleteGraph(graph.id, tableName)
+                                  await deleteGraph(graph.graph_id, tableName) // Используем graph_id
                                   // Remove the graph from generatedGraphs
-                                  setGeneratedGraphs((prev) => prev.filter(g => g.id !== graph.id))
+                                  setGeneratedGraphs((prev) => prev.filter(g => g.graph_id !== graph.graph_id))
                                 } catch (err: any) {
                                   setError(err.message || 'Произошла ошибка при удалении графика.')
                                 }
@@ -521,7 +527,7 @@ export default function AiPage() {
                           <div className="space-y-4">
                             {tableData.graphs.length > 0 ? (
                               tableData.graphs.map((graph: Graph) => (
-                                <div key={graph.id} className="bg-gray-100 p-4 rounded-lg">
+                                <div key={graph.graph_id} className="bg-gray-100 p-4 rounded-lg">
                                   <p className="text-sm text-gray-700 mb-2"><strong>Описание:</strong> {graph.prompt}</p>
                                   <iframe
                                     srcDoc={atob(graph.graph_html)}
@@ -531,7 +537,7 @@ export default function AiPage() {
                                       border: 'none',
                                       overflow: 'hidden',
                                     }}
-                                    title={`Graph-${graph.id}`}
+                                    title={`Graph-${graph.graph_id}`}
                                     sandbox="allow-scripts allow-same-origin"
                                   />
                                   <p className="text-xs text-gray-500 mt-2">
