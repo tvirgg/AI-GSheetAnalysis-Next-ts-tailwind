@@ -5,7 +5,7 @@ import React from 'react';
 
 const Preloader: React.FC = () => {
   return (
-    <div className="flex justify-center items-center h-screen">
+    <div className="flex justify-center items-center w-full h-full">
       <svg
         className="animate-spin h-10 w-10 text-indigo-500"
         xmlns="http://www.w3.org/2000/svg"

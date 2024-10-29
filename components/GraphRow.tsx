@@ -11,7 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, useState } from 'react';
-import LazyIframe from './LazyIframe'; // Импортируем наш новый компонент
+import LazyIframe from './LazyIframe'; // Обновленный LazyIframe
 import "../app/globals.css"; // Импорт стилей
 
 interface Graph {
@@ -59,12 +59,31 @@ const GraphRow: React.FC<GraphRowProps> = ({
   const handleExpand = (graph: Graph) => {
     try {
       const decodedHtml = atob(graph.graph_html);
-      setModalContent(decodedHtml); // Устанавливаем декодированный HTML
+      setModalContent(processSrcDoc(decodedHtml)); // Устанавливаем обработанный HTML
       setIsModalOpen(true);
     } catch (error) {
       console.error('Ошибка при развертывании графика:', error);
       alert('Не удалось отобразить график. Попробуйте позже.');
     }
+  };
+
+  // Функция для обработки srcDoc: удаление скриптов Plotly.js и ApexCharts.js
+  const processSrcDoc = (decodedHtml: string) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(decodedHtml, 'text/html');
+
+    // Удаляем только внешние скрипты Plotly.js и ApexCharts.js
+    const scripts = doc.querySelectorAll('script');
+    scripts.forEach((script) => {
+      const src = script.getAttribute('src') || '';
+      // Удаляем только внешние скрипты Plotly.js и ApexCharts.js
+      if (src.includes('cdn.plot.ly') || src.includes('cdn.jsdelivr.net/npm/apexcharts')) {
+        script.remove();
+      }
+      // Сохраняем все остальные скрипты (инициализация графиков)
+    });
+
+    return doc.documentElement.outerHTML;
   };
 
   return (
@@ -78,7 +97,7 @@ const GraphRow: React.FC<GraphRowProps> = ({
           >
             <div className="relative bg-white p-4 rounded-lg shadow h-[60vh] w-full overflow-hidden">
               {/* Контейнер для кнопок управления графиком */}
-              <div className="absolute top-2 left-2 flex space-x-2 z-10">
+              <div className="absolute top-2 left-2 flex space-x-2 z-20">
                 {/* Кнопка обновления графика */}
                 <button
                   onClick={() => handleRefreshGraph(graph.id, tableName)}
@@ -118,7 +137,7 @@ const GraphRow: React.FC<GraphRowProps> = ({
 
               {/* Отображение графика через LazyIframe */}
               <LazyIframe
-                srcDoc={atob(graph.graph_html)}
+                srcDoc={processSrcDoc(atob(graph.graph_html))}
                 title={graph.prompt}
                 className="w-full h-full border-0 rounded-lg"
               />
@@ -178,12 +197,11 @@ const GraphRow: React.FC<GraphRowProps> = ({
                       <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                     </button>
                   </div>
-                  <div className="mt-5 sm:mt-6">
-                    <iframe
+                  <div className="mt-5 sm:mt-6 h-[600px]">
+                    <LazyIframe
                       srcDoc={modalContent}
-                      className="w-full h-[80vh] border-0 rounded-lg"
                       title="Развернутый график"
-                      sandbox="allow-scripts allow-same-origin"
+                      className="w-full h-full border-0 rounded-lg"
                     />
                   </div>
                 </Dialog.Panel>
