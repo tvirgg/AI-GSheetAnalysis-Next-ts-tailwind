@@ -415,7 +415,7 @@ export default function ReportsPage() {
                     className="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                   >
                     <ArrowDownTrayIcon aria-hidden="true" className="-ml-0.5 h-5 w-5" />
-                    Загрузить гугл таблицу
+                    Загрузить Google таблицу
                   </button>
                 )}
 
@@ -564,7 +564,7 @@ export default function ReportsPage() {
                                 {table.table_type === 'excel' ? 'Excel' : 'Google Таблицы'}
                               </td>
                               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-700">
-                                Подключен к дашбоарду
+                                Подключен к дашборду
                               </td>
                               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-700">
                                 {new Date(table.last_updated * 1000).toLocaleString()}
@@ -638,7 +638,7 @@ export default function ReportsPage() {
                             <input
                               type="url"
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm"
-                              placeholder="Вставьте ссылку на Google таблицу"
+                              placeholder="Вставьте ссылку на Google таблицу из адрессной строки"
                               value={googleSheetURL}
                               onChange={(e) => setGoogleSheetURL(e.target.value)}
                             />
@@ -647,7 +647,7 @@ export default function ReportsPage() {
                           {/* Поле ввода количества строк */}
                           <div className="mb-4">
                             <label className="block text-sm font-medium text-gray-700">
-                              Количество строк для анализа (оставьте пустым для всех строк)
+                              Количество строк для анализа (Чтобы проанализировать всю таблицу оставьте поле пустым)
                             </label>
                             <input
                               type="number"

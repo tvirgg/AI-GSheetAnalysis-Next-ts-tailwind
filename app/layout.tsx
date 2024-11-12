@@ -11,7 +11,7 @@ import ScriptLoader from '../components/ScriptLoader'; // Импортируем
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'АШКА',
+  title: 'Панелька',
   description: 'Created by Gerus',
 };
 

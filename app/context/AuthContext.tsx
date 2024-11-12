@@ -16,7 +16,7 @@ interface User {
   email: string
   username: string
   auth_type: string
-  company_name: string // Добавлено поле company_name
+  company_name: string
 }
 
 interface AuthContextType {
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('token', newToken)
     setToken(newToken)
     await fetchUserData(newToken)
-    router.push('/dashboard')
+    router.push('/dashboard') // Убедитесь, что это нужный путь
   }
 
   const logoutUser = () => {

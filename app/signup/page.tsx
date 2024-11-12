@@ -4,16 +4,18 @@
 import { useState, FormEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { API_BASE_URL } from 'baseapi/config' // Используем новый алиас
+import { API_BASE_URL } from 'baseapi/config'
+import { useAuth } from '../context/AuthContext'
 
 export default function SignupPage() {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [companyName, setCompanyName] = useState('') // Добавлено состояние для company_name
+  const [companyName, setCompanyName] = useState('')
   const [message, setMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { login } = useAuth()
 
   const register = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -24,14 +26,13 @@ export default function SignupPage() {
       const response = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, username, password, company_name: companyName }) // Включено company_name
+        body: JSON.stringify({ email, username, password, company_name: companyName })
       })
 
       const data = await response.json()
 
-      if (response.ok) {
-        setMessage('Регистрация прошла успешно!')
-        router.push('/signin')
+      if (response.ok && data.token) {
+        await login(data.token) // Автоматически логиним пользователя
       } else {
         setMessage(data.message || 'Ошибка при регистрации.')
       }
