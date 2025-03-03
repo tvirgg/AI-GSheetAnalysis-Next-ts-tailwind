@@ -1,109 +1,110 @@
-# Документация по проекту
+# Project Documentation
 
-## Оглавление
-- [Введение](#введение)
-- [Структура проекта](#структура-проекта)
-  - [Компоненты](#компоненты)
-  - [Папка `app`](#папка-app)
-- [Описание компонентов](#описание-компонентов)
+## Table of Contents
+- [Introduction](#introduction)
+- [Project Structure](#project-structure)
+  - [Components](#components)
+  - [The `app` Folder](#the-app-folder)
+- [Component Descriptions](#component-descriptions)
   - [Navbar](#navbar)
   - [Sidebar](#sidebar)
   - [WelcomeNavigation](#welcomenavigation)
-- [Описание страниц и маршрутов](#описание-страниц-и-маршрутов)
-  - [Основные страницы](#основные-страницы)
-  - [API маршруты](#api-маршруты)
-  - [Панель управления (Dashboard)](#панель-управления-dashboard)
-  - [Вспомогательные библиотеки](#вспомогательные-библиотеки)
-  - [Страницы авторизации и тестирования](#страницы-авторизации-и-тестирования)
+- [Pages and Routes Description](#pages-and-routes-description)
+  - [Main Pages](#main-pages)
+  - [API Routes](#api-routes)
+  - [Dashboard](#dashboard)
+  - [Utility Libraries](#utility-libraries)
+  - [Authentication and Testing Pages](#authentication-and-testing-pages)
 
-## Введение
-Этот проект представляет собой веб-приложение, использующее TypeScript и React для создания интерфейса пользователя. Проект имеет различные страницы, компоненты, а также API маршруты для взаимодействия с серверной частью.
+## Introduction
+This project is a web application built using TypeScript and React for creating a user interface. The project consists of various pages, components, and API routes for server-side interaction.
 
-## Структура проекта
+## Project Structure
 
-### Компоненты
-Папка `components` содержит повторно используемые элементы интерфейса:
+### Components
+The `components` folder contains reusable UI elements:
 
-- **Navbar.js**: Навигационная панель, отображаемая в верхней части страницы. Содержит ссылки на ключевые разделы сайта.
-- **Sidebar.js**: Боковая панель навигации, предоставляющая пользователю доступ к различным функциям и страницам.
-- **WelcomeNavigation.js**: Компонент навигации, используемый для приветствия новых или неавторизованных пользователей.
+- **Navbar.js**: A navigation bar displayed at the top of the page. It contains links to key sections of the site.
+- **Sidebar.js**: A sidebar navigation panel that provides users with access to various functions and pages.
+- **WelcomeNavigation.js**: A navigation component used to greet new or unauthenticated users.
 
-### Папка `app`
-Папка `app` содержит основную структуру страниц и API маршрутов:
+### The `app` Folder
+The `app` folder contains the main structure of pages and API routes:
 
-- **favicon.ico**: Иконка для сайта, отображаемая на вкладке браузера.
-- **globals.css**: Файл с глобальными стилями, применяемыми ко всем страницам приложения.
-- **layout.tsx**: Основной компонент layout, обеспечивающий общий интерфейс для всех страниц приложения (например, header, footer).
-- **page.tsx**: Главная страница приложения, которая загружается по умолчанию.
-- **api**: Папка с API маршрутами для серверного взаимодействия.
-  - **private/route.ts**: Приватный API маршрут, предназначенный для работы с защищёнными данными.
-  - **[...nextauth]/route.ts**: Маршрут, отвечающий за авторизацию через библиотеку NextAuth.
-- **dashboard**: Папка с функционалом панели управления.
-  - **page.tsx**: Основная страница панели управления.
-  - **ai/page.tsx**: Страница, связанная с функциями, основанными на AI.
-  - **my/page.tsx**: Страница "Мои данные", отображающая персональную информацию пользователя.
-  - **reports/page.tsx**: Страница для создания и отображения отчетов.
-- **lib**: Вспомогательные библиотеки и конфигурации.
-  - **actions.ts**: Содержит действия (функции), используемые для взаимодействия с различными частями приложения.
-  - **prisma.ts**: Конфигурация для взаимодействия с базой данных Prisma.
-- **signin/page.tsx**: Страница авторизации пользователя.
-- **signup/page.tsx**: Страница регистрации нового пользователя.
-- **test/page.tsx**: Тестовая страница для проверки различных функций приложения.
+- **favicon.ico**: The site icon displayed in the browser tab.
+- **globals.css**: A global stylesheet applied to all application pages.
+- **layout.tsx**: The main layout component providing a common interface for all pages (e.g., header, footer).
+- **page.tsx**: The main application page loaded by default.
+- **api**: A folder with API routes for server-side interaction.
+  - **private/route.ts**: A private API route designed for working with protected data.
+  - **[...nextauth]/route.ts**: A route responsible for authentication via NextAuth.
+- **dashboard**: A folder containing dashboard functionality.
+  - **page.tsx**: The main dashboard page.
+  - **ai/page.tsx**: A page related to AI-based features.
+  - **my/page.tsx**: The "My Data" page displaying user-specific information.
+  - **reports/page.tsx**: A page for creating and viewing reports.
+- **lib**: Utility libraries and configurations.
+  - **actions.ts**: Contains actions (functions) used for interacting with different parts of the application.
+  - **prisma.ts**: Configuration for working with the Prisma database.
+- **signin/page.tsx**: The user authentication page.
+- **signup/page.tsx**: The registration page for new users.
+- **test/page.tsx**: A test page for verifying various application features.
 
-## Описание компонентов
+## Component Descriptions
 
 ### Navbar
-**Файл**: `components/Navbar.js`
+**File**: `components/Navbar.js`
 
-Navbar представляет собой навигационную панель, отображаемую в верхней части всех страниц приложения. Она содержит основные ссылки, необходимые для перемещения между разделами сайта.
+The Navbar is a navigation bar displayed at the top of all application pages. It contains essential links required for moving between different sections of the site.
 
 ### Sidebar
-**Файл**: `components/Sidebar.js`
+**File**: `components/Sidebar.js`
 
-Sidebar — это боковая панель навигации, предназначенная для упрощения доступа к функциям и страницам приложения. Обычно она используется на страницах панели управления и предоставляет дополнительные возможности навигации.
+The Sidebar is a navigation panel designed to simplify access to application features and pages. It is mainly used on dashboard pages and provides additional navigation options.
 
 ### WelcomeNavigation
-**Файл**: `components/WelcomeNavigation.js`
+**File**: `components/WelcomeNavigation.js`
 
-WelcomeNavigation — это компонент, отображающий навигацию для приветствия новых пользователей. Он может включать в себя ссылки на страницы регистрации и авторизации.
+The WelcomeNavigation component displays navigation options for greeting new users. It may include links to registration and login pages.
 
-## Описание страниц и маршрутов
+## Pages and Routes Description
 
-### Основные страницы
+### Main Pages
 
-- **layout.tsx**: Основной layout приложения, который определяет общие элементы (например, header и footer), используемые на всех страницах. Layout отвечает за оформление страниц, создавая единообразный пользовательский интерфейс. Он используется для того, чтобы задать общую структуру, включающую навигацию и основные секции, доступные на каждой странице.
+- **layout.tsx**: The main layout of the application, defining common elements (such as header and footer) used across all pages. The layout is responsible for designing pages with a consistent user interface. It provides a structure that includes navigation and key sections available on every page.
 
-- **page.tsx**: Главная страница приложения, с которой начинается взаимодействие пользователя. Она содержит базовую информацию о приложении и предоставляет доступ к ключевым разделам. Главная страница может включать в себя приветственное сообщение, описание приложения и ссылки на другие важные страницы.
+- **page.tsx**: The main application page where user interaction starts. It contains basic information about the application and provides access to key sections. The main page may include a welcome message, an application description, and links to other important pages.
 
-### API маршруты
+### API Routes
 
-- **private/route.ts**: Приватный маршрут API, который требует авторизации для доступа. Используется для работы с защищёнными данными, такими как информация о пользователе или конфиденциальные данные приложения. Этот маршрут отвечает за выполнение операций, которые должны быть недоступны неавторизованным пользователям.
+- **private/route.ts**: A private API route requiring authentication. It is used for handling protected data such as user information or confidential application data. This route ensures that unauthorized users cannot access sensitive operations.
 
-- **[...nextauth]/route.ts**: Маршрут, отвечающий за авторизацию пользователей с использованием NextAuth. Обеспечивает аутентификацию и управление сеансами пользователей, включая регистрацию, вход и выход. Этот маршрут необходим для того, чтобы поддерживать безопасность приложения и контролировать доступ к различным разделам.
+- **[...nextauth]/route.ts**: A route responsible for user authentication using NextAuth. It handles authentication and session management, including user registration, login, and logout. This route is essential for maintaining application security and controlling access to various sections.
 
-### Панель управления (Dashboard)
+### Dashboard
 
-- **dashboard/page.tsx**: Основная страница панели управления, предоставляющая общий обзор и доступ к функционалу приложения. Эта страница отображает основную информацию, такую как статистика, последние действия, или сводные данные, и является отправной точкой для работы пользователя с панелью управления.
+- **dashboard/page.tsx**: The main dashboard page providing an overview and access to application features. This page displays key information such as statistics, recent activities, or summary data and serves as a starting point for dashboard interactions.
 
-- **dashboard/ai/page.tsx**: Страница, связанная с функциями искусственного интеллекта. Может включать в себя аналитические функции или рекомендации на основе AI. Данная страница предоставляет пользователю доступ к инструментам на базе AI, которые могут быть использованы для анализа данных или получения предложений.
+- **dashboard/ai/page.tsx**: A page related to artificial intelligence features. It may include analytical functions or AI-based recommendations. This page provides users with access to AI-powered tools for data analysis or suggestions.
 
-- **dashboard/my/page.tsx**: Страница "Мои данные", на которой пользователи могут просматривать и редактировать свою личную информацию. Это может включать контактные данные, настройки учетной записи и другую персональную информацию, которую пользователь может изменить в любое время.
+- **dashboard/my/page.tsx**: The "My Data" page, where users can view and edit their personal information. This includes contact details, account settings, and other personal data that users can modify anytime.
 
-- **dashboard/reports/page.tsx**: Страница для создания и просмотра отчетов. Позволяет пользователям анализировать данные и получать сводки. Пользователи могут создавать отчеты на основе имеющихся данных, просматривать историю отчетов и экспортировать их для дальнейшего использования.
+- **dashboard/reports/page.tsx**: A page for creating and viewing reports. It allows users to analyze data and obtain summaries. Users can generate reports based on available data, view report history, and export reports for further use.
 
-### Вспомогательные библиотеки
+### Utility Libraries
 
-- **actions.ts**: Файл, содержащий функции действий, используемые для взаимодействия с различными компонентами приложения. Эти действия могут включать обработку событий пользователя и взаимодействие с сервером. Основная цель этих функций — обеспечить единообразное выполнение часто используемых операций, таких как отправка данных на сервер или обновление состояния приложения.
+- **actions.ts**: A file containing action functions used for interacting with various application components. These actions may include handling user events and server interactions. The main goal of these functions is to ensure consistent execution of frequently used operations such as sending data to the server or updating application state.
 
-- **prisma.ts**: Конфигурация для подключения к базе данных с использованием Prisma. Определяет настройки и подключение для работы с базой данных, включая доступ к таблицам и выполнение запросов. Prisma позволяет упростить взаимодействие с базой данных, обеспечивая удобный API для выполнения операций CRUD.
+- **prisma.ts**: A configuration file for connecting to the database using Prisma. It defines settings and connections for interacting with the database, including table access and executing queries. Prisma simplifies database interaction by providing a convenient API for CRUD operations.
 
-### Страницы авторизации и тестирования
+### Authentication and Testing Pages
 
-- **signin/page.tsx**: Страница авторизации пользователя. Она предоставляет форму для ввода логина и пароля, а также механизмы для восстановления пароля или входа через сторонние сервисы. Авторизация необходима для обеспечения безопасности и ограничения доступа к приватным данным.
+- **signin/page.tsx**: The user authentication page. It provides a form for entering login credentials and mechanisms for password recovery or third-party login. Authentication is necessary for ensuring security and restricting access to private data.
 
-- **signup/page.tsx**: Страница регистрации нового пользователя. Она содержит форму для создания новой учетной записи, включая поля для ввода имени, адреса электронной почты и пароля. Регистрация позволяет новым пользователям создавать учетную запись и начинать использование приложения.
+- **signup/page.tsx**: The new user registration page. It contains a form for creating an account, including fields for entering a name, email address, and password. Registration allows new users to create an account and start using the application.
 
-- **test/page.tsx**: Тестовая страница для проверки различных функций приложения. Используется разработчиками для отладки и тестирования новых возможностей перед их выпуском в основное приложение. Эта страница может содержать временные элементы интерфейса или функции, необходимые для тестирования логики приложения.
+- **test/page.tsx**: A test page for verifying various application features. Used by developers for debugging and testing new functionalities before releasing them to the main application. This page may contain temporary UI elements or functions needed for testing application logic.
 
-## Заключение
-Эта документация предоставляет обзор структуры проекта и объясняет функции каждого компонента и страницы. Если у вас есть дополнительные вопросы или нужна более детальная информация по какому-то из разделов, не стесняйтесь обращаться.
+## Conclusion
+This documentation provides an overview of the project structure and explains the functions of each component and page. If you have any additional questions or need more detailed information about a specific section, feel free to reach out.
+
